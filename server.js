@@ -19,6 +19,8 @@ app.get("/", (req, res) => {
 });
 
 require('./routes/userRoute')(app);
+require('./routes/categoryRoute')(app);
+require('./routes/productRoute')(app);
 
 
 mongoose.Promise = global.Promise;
