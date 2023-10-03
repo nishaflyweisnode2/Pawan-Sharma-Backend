@@ -1,4 +1,7 @@
 const Product = require('../models/productmodel');
+const SubCategory = require('../models/subCategoryModel');
+const Category = require('../models/categoryModel');
+
 
 const { productSchema, productIdSchema, updateProductSchema } = require('../validations/productvalidation');
 
@@ -17,6 +20,7 @@ exports.createProduct = async (req, res) => {
             description,
             price,
             categoryId,
+            subCategoryId,
             size,
             color,
             stock,
@@ -26,12 +30,23 @@ exports.createProduct = async (req, res) => {
             url: file.path,
         }));
 
+        const subCategories = await SubCategory.findById(subCategoryId)
+
+        if (!subCategories) {
+            return res.status(404).json({ status: 404, message: "subCategories not found" });
+        }
+        const categories = await Category.findById(category)
+        if (!categories) {
+            return res.status(404).json({ status: 404, message: "categories not found" });
+        }
+
         const product = new Product({
             productName,
             description,
             image: images,
             price,
             categoryId,
+            subCategoryId,
             size,
             color,
             stock,
@@ -95,6 +110,21 @@ exports.updateProduct = async (req, res) => {
         let updatedFields = {
             ...req.body
         };
+
+        if (updatedFields.subCategoryId) {
+            const subCategories = await SubCategory.findById(updatedFields.subcategoryId)
+
+            if (!subCategories) {
+                return res.status(404).json({ status: 404, message: "subCategories not found" });
+            }
+        }
+
+        if (updatedFields.categoryId) {
+            const categories = await Category.findById(updatedFields.categoryId)
+            if (!categories) {
+                return res.status(404).json({ status: 404, message: "categories not found" });
+            }
+        }
 
         if (req.files && req.files.length > 0) {
             const images = req.files.map((file) => ({

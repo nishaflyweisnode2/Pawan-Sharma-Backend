@@ -11,8 +11,11 @@ const storage = new CloudinaryStorage({ cloudinary: cloudinary, params: { folder
 const profileImage = multer({ storage: storage });
 const storage1 = new CloudinaryStorage({ cloudinary: cloudinary, params: { folder: "Pawan-Sharma-Backend/categoryImage", allowed_formats: ["jpg", "jpeg", "png", "PNG", "xlsx", "xls", "pdf", "PDF"], }, });
 const categoryImage = multer({ storage: storage1 });
-const storage2 = new CloudinaryStorage({ cloudinary: cloudinary, params: { folder: "Pawan-Sharma-Backend/productImage", allowed_formats: ["jpg", "jpeg", "png", "PNG", "xlsx", "xls", "pdf", "PDF"], }, });
-const productImage = multer({ storage: storage2 });
+const storage2 = new CloudinaryStorage({ cloudinary: cloudinary, params: { folder: "Pawan-Sharma-Backend/subCategoryImage", allowed_formats: ["jpg", "jpeg", "png", "PNG", "xlsx", "xls", "pdf", "PDF"], }, });
+const subCategoryImage = multer({ storage: storage2 });
+const storage3 = new CloudinaryStorage({ cloudinary: cloudinary, params: { folder: "Pawan-Sharma-Backend/productImage", allowed_formats: ["jpg", "jpeg", "png", "PNG", "xlsx", "xls", "pdf", "PDF"], }, });
+const productImage = multer({ storage: storage3 });
 
 
-module.exports = { profileImage, categoryImage, productImage }
+
+module.exports = { profileImage, categoryImage, subCategoryImage, productImage }

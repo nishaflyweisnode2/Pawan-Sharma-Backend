@@ -30,6 +30,14 @@ exports.productSchema = Joi.object({
             return value;
         })
         .required(),
+    subCategoryId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
     size: Joi.array().items(Joi.string()).required(),
     color: Joi.array().items(Joi.string()).required(),
     stock: Joi.number().required(),
@@ -52,6 +60,14 @@ exports.updateProductSchema = Joi.object({
     description: Joi.string(),
     price: Joi.number().optional(),
     categoryId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .optional(),
+    subCategoryId: Joi.string()
         .custom((value, helpers) => {
             if (!mongoose.isValidObjectId(value)) {
                 return helpers.error('any.invalid');
