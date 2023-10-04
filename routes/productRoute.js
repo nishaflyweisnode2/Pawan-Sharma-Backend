@@ -20,6 +20,18 @@ module.exports = (app) => {
     app.get('/api/user/products/:productId', [authJwt.verifyToken], auth.getProductById);
     app.put('/api/user/products/:productId', [authJwt.verifyToken], productImage.array('image'), auth.updateProduct);
     app.delete('/api/user/products/:productId', [authJwt.verifyToken], auth.deleteProduct);
+    app.post('/api/user/products/:productId/reviews', [authJwt.verifyToken], auth.createProductReview);
+    app.get('/api/user/products/:productId/reviews', [authJwt.verifyToken], auth.getAllProductReviews);
+    app.get('/api/user/products/:productId/reviews/:reviewId', [authJwt.verifyToken], auth.getProductReviewById);
+    app.put('/api/user/products/:productId/reviews/:reviewId', [authJwt.verifyToken], auth.updateProductReview);
+    app.delete('/api/user/products/:productId/reviews/:reviewId', [authJwt.verifyToken], auth.deleteProductReview);
+    app.post('/api/user/products/wishlist/:productId', [authJwt.verifyToken], auth.addToWishlist);
+    app.get('/api/user/product/wishlist', [authJwt.verifyToken], auth.getMyWishlist);
+    app.delete('/api/user/products/wishlist/:productId', [authJwt.verifyToken], auth.removeFromWishlist);
+    app.get('/api/user/products/category/:categoryId', [authJwt.verifyToken], auth.getProductsByCategory);
+    app.get('/api/user/products/subCategoryId/:subCategoryId', [authJwt.verifyToken], auth.getProductsBySubCategory);
+    // app.get('/api/user/product/search', [authJwt.verifyToken], auth.searchProducts);
+
 
 
 }

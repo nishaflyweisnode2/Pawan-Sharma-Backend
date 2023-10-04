@@ -2,21 +2,6 @@ const Joi = require('joi');
 const mongoose = require('mongoose');
 
 
-// rating: Joi.number(),
-// reviews: Joi.array().items(
-//     Joi.object({
-//         user: Joi.string().required(),
-//         name: Joi.string().required(),
-//         rating: Joi.number().required(),
-//         comment: Joi.string().required(),
-//     })
-// ),
-// image: Joi.array().items(
-//     Joi.object({
-//         url: Joi.string().required(),
-//     })
-// ),
-
 
 exports.productSchema = Joi.object({
     productName: Joi.string().required(),
@@ -55,6 +40,30 @@ exports.productIdSchema = Joi.object({
 });
 
 
+exports.categoryIdSchema = Joi.object({
+    categoryId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+});
+
+
+exports.subCategoryIdSchema = Joi.object({
+    subCategoryId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+});
+
+
 exports.updateProductSchema = Joi.object({
     productName: Joi.string().optional(),
     description: Joi.string(),
@@ -79,3 +88,124 @@ exports.updateProductSchema = Joi.object({
     color: Joi.array().items(Joi.string()).optional(),
     stock: Joi.number().optional(),
 });
+
+
+exports.createProductReviewSchema = Joi.object({
+    productId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+    rating: Joi.number().required().min(1).max(5),
+    comment: Joi.string().required(),
+});
+
+
+exports.updateProductReviewSchema = Joi.object({
+    productId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+    reviewId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+    rating: Joi.number().optional().min(1).max(5),
+    comment: Joi.string().optional(),
+});
+
+
+exports.getAllProductReviewsSchema = Joi.object({
+    productId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+});
+
+
+
+exports.getProductReviewByIdSchema = Joi.object({
+    productId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+    reviewId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+});
+
+
+exports.deleteProductReviewSchema = Joi.object({
+    productId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+    reviewId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+});
+
+
+exports.addToWishlistSchema = Joi.object({
+    productId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+});
+
+
+exports.removeFromWishlistSchema = Joi.object({
+    productId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+});
+
+
+exports.searchSchema = Joi.object({
+    search: Joi.string().min(1).max(255).required(),
+});
+
+
+
