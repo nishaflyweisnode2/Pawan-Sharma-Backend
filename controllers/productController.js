@@ -5,7 +5,7 @@ const User = require('../models/userModel');
 const Wishlist = require('../models/wishlistMiodel');
 
 
-const { productSchema, productIdSchema, updateProductSchema, createProductReviewSchema, updateProductReviewSchema, getAllProductReviewsSchema, getProductReviewByIdSchema, deleteProductReviewSchema, addToWishlistSchema, removeFromWishlistSchema, categoryIdSchema, subCategoryIdSchema, searchSchema } = require('../validations/productvalidation');
+const { productSchema, productIdSchema, updateProductSchema, createProductReviewSchema, updateProductReviewSchema, getAllProductReviewsSchema, getProductReviewByIdSchema, deleteProductReviewSchema, addToWishlistSchema, removeFromWishlistSchema, categoryIdSchema, subCategoryIdSchema, searchSchema, getNewArrivalProductsSchema } = require('../validations/productvalidation');
 
 
 
@@ -508,57 +508,125 @@ exports.getProductsBySubCategory = async (req, res) => {
 };
 
 
-// exports.searchProducts = async (req, res) => {
-//     try {
-//         const { search } = req.query;
+exports.searchProducts = async (req, res) => {
+    try {
+        const { search } = req.query;
 
-//         const { error } = searchSchema.validate({ search });
+        const { error } = searchSchema.validate({ search });
 
-//         if (error) {
-//             return res.status(400).json({ status: 400, message: error.details[0].message });
-//         }
+        if (error) {
+            return res.status(400).json({ status: 400, message: error.details[0].message });
+        }
 
-//         const productsCount = await Product.count();
-//         if (search) {
-//             let data1 = [
-//                 {
-//                     $lookup: { from: "categories", localField: "categoryId", foreignField: "_id", as: "category" },
-//                 },
-//                 { $unwind: "$category" },
-//                 {
-//                     $lookup: { from: "subcategories", localField: "subCategoryId", foreignField: "_id", as: "SubCategory", },
-//                 },
-//                 { $unwind: "$subCategory" },
-//                 {
-//                     $match: {
-//                         $or: [
-//                             { "category.name": { $regex: search, $options: "i" }, },
-//                             { "SubCategory.name": { $regex: search, $options: "i" }, },
-//                             { "productName": { $regex: search, $options: "i" }, },
-//                             { "description": { $regex: search, $options: "i" }, },
-//                         ]
-//                     }
-//                 },
-//                 { $sort: { numOfReviews: -1 } }
-//             ]
-//             let apiFeature = await Product.aggregate(data1);
-//             return res.status(200).json({ status: 200, message: "Product data found.", data: apiFeature, count: productsCount });
-//         } else {
-//             let apiFeature = await Product.aggregate([
-//                 { $lookup: { from: "categories", localField: "categoryId", foreignField: "_id", as: "Category" } },
-//                 { $unwind: "$Category" },
-//                 { $lookup: { from: "subcategories", localField: "subCategoryId", foreignField: "_id", as: "SubCategory", }, },
-//                 { $unwind: "$SubCategory" },
-//                 { $sort: { numOfReviews: -1 } }
-//             ]);
+        const productsCount = await Product.count();
+        if (search) {
+            let data1 = [
+                {
+                    $lookup: { from: "categories", localField: "categoryId", foreignField: "_id", as: "categoryId" },
+                },
+                { $unwind: "$categoryId" },
+                {
+                    $lookup: { from: "subcategories", localField: "subCategoryId", foreignField: "_id", as: "subCategoryId", },
+                },
+                { $unwind: "$subCategoryId" },
+                {
+                    $match: {
+                        $or: [
+                            { "categoryId.name": { $regex: search, $options: "i" }, },
+                            { "subCategoryId.name": { $regex: search, $options: "i" }, },
+                            { "productName": { $regex: search, $options: "i" }, },
+                            { "description": { $regex: search, $options: "i" }, },
+                        ]
+                    }
+                },
+                { $sort: { numOfReviews: -1 } }
+            ]
+            let apiFeature = await Product.aggregate(data1);
+            return res.status(200).json({ status: 200, message: "Product data found.", data: apiFeature, count: productsCount });
+        } else {
+            let apiFeature = await Product.aggregate([
+                { $lookup: { from: "categories", localField: "categoryId", foreignField: "_id", as: "categoryId" } },
+                { $unwind: "$categoryId" },
+                { $lookup: { from: "subcategories", localField: "subCategoryId", foreignField: "_id", as: "subCategoryId", }, },
+                { $unwind: "$subCategoryId" },
+                { $sort: { numOfReviews: -1 } }
+            ]);
 
-//             return res.status(200).json({ status: 200, message: "Product data found.", data: apiFeature, count: productsCount });
-//         }
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ status: 500, message: 'Error searching products', error: error.message });
-//     }
-// };
+            return res.status(200).json({ status: 200, message: "Product data found.", data: apiFeature, count: productsCount });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error searching products', error: error.message });
+    }
+};
 
 
+exports.getNewArrivalProductsByCategoryAndSubCategory = async (req, res) => {
+    try {
+        const categoryId = req.params.categoryId;
+        const subcategoryId = req.params.subcategoryId;
+
+        const { error } = getNewArrivalProductsSchema.validate({ categoryId, subcategoryId });
+
+        if (error) {
+            return res.status(400).json({ status: 400, message: error.details[0].message });
+        }
+
+        const category = await Category.findById(categoryId);
+
+        if (!category) {
+            return res.status(404).json({ status: 404, message: 'Category not found' });
+        }
+
+        const subCategory = await SubCategory.findById(subcategoryId);
+
+        if (!subCategory) {
+            return res.status(404).json({ status: 404, message: 'SubCategory not found' });
+        }
+
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const newArrivalProducts = await Product.find({
+            categoryId: categoryId,
+            subCategoryId: subcategoryId,
+            createdAt: { $gte: thirtyDaysAgo },
+        }).sort({ createdAt: -1 });
+
+        return res.status(200).json({ status: 200, message: 'New arrival products by category and subcategory', data: newArrivalProducts, });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error retrieving new arrival products', error: error.message, });
+    }
+};
+
+
+exports.getNewArrivalProducts = async (req, res) => {
+    try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const newArrivalProducts = await Product.find({
+            createdAt: { $gte: thirtyDaysAgo },
+        }).sort({ createdAt: -1 });
+
+        return res.status(200).json({ status: 200, message: 'New arrival products', data: newArrivalProducts, });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error retrieving new arrival products', error: error.message, });
+    }
+};
+
+
+exports.getMostDemandedProducts = async (req, res) => {
+    try {
+        const mostDemandedProducts = await Product.find({})
+            .sort({ numOfReviews: -1 })
+
+        return res.status(200).json({ status: 200, message: 'Most demanded products', data: mostDemandedProducts });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error retrieving most demanded products', error: error.message, });
+    }
+};
 

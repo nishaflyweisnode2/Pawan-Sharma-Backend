@@ -208,4 +208,22 @@ exports.searchSchema = Joi.object({
 });
 
 
+exports.getNewArrivalProductsSchema = Joi.object({
+    categoryId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+    subcategoryId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+});
 

@@ -30,8 +30,10 @@ module.exports = (app) => {
     app.delete('/api/user/products/wishlist/:productId', [authJwt.verifyToken], auth.removeFromWishlist);
     app.get('/api/user/products/category/:categoryId', [authJwt.verifyToken], auth.getProductsByCategory);
     app.get('/api/user/products/subCategoryId/:subCategoryId', [authJwt.verifyToken], auth.getProductsBySubCategory);
-    // app.get('/api/user/product/search', [authJwt.verifyToken], auth.searchProducts);
-
+    app.get('/api/user/product/search', [authJwt.verifyToken], auth.searchProducts);
+    app.get('/api/user/category/:categoryId/subcategory/:subcategoryId/new-arrivals', [authJwt.verifyToken], auth.getNewArrivalProductsByCategoryAndSubCategory)
+    app.get('/api/user/new-arrivals', [authJwt.verifyToken], auth.getNewArrivalProducts);
+    app.get('/api/user/most-demanded', [authJwt.verifyToken], auth.getMostDemandedProducts);
 
 
 }
