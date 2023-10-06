@@ -18,6 +18,10 @@ module.exports = (app) => {
     app.get('/api/user/cart/get', [authJwt.verifyToken], auth.getCart);
     app.put('/api/user/cart/update', [authJwt.verifyToken], auth.updateCart);
     app.delete('/api/user/cart/delete', [authJwt.verifyToken], auth.deleteCart);
-    app.put('/api/user/updateQuantity', [authJwt.verifyToken], auth.updateCartQuantity);
+    app.put('/api/user/cart/updateQuantity', [authJwt.verifyToken], auth.updateCartQuantity);
+    app.delete('/api/user/cart/products/:productId', [authJwt.verifyToken], auth.deleteCartProductById);
+    app.post('/api/user/cart/apply-coupon', [authJwt.verifyToken], auth.applyCouponToCart);
+    app.put('/api/user/cart/update-apply-coupon', [authJwt.verifyToken], auth.updateCartCoupon);
+    app.delete('/api/user/cart/delete-apply-coupon', [authJwt.verifyToken], auth.removeCartCoupon);
 
 }

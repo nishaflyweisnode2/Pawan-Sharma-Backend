@@ -23,6 +23,8 @@ require('./routes/categoryRoute')(app);
 require('./routes/productRoute')(app);
 require('./routes/subCategoryRoute')(app);
 require('./routes/cartRoute')(app);
+require('./routes/couponRoute')(app);
+require('./routes/addressRoute')(app);
 
 
 mongoose.Promise = global.Promise;

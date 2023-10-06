@@ -44,3 +44,12 @@ exports.updateCartQuantityValidation = Joi.object({
 });
 
 
+exports.applyCouponValidation = Joi.object({
+    couponCode: Joi.string().required(),
+});
+
+
+exports.updateApplyCouponValidation = Joi.object({
+    couponId: Joi.string().required(),
+});
+
