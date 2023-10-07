@@ -34,7 +34,7 @@ const orderSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['Credit Card', 'PayPal', 'Cash on Delivery'],
+        enum: ['Credit Card', 'Online', 'Cash on Delivery'],
     },
     paymentStatus: {
         type: String,

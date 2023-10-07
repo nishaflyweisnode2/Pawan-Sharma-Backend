@@ -25,6 +25,7 @@ require('./routes/subCategoryRoute')(app);
 require('./routes/cartRoute')(app);
 require('./routes/couponRoute')(app);
 require('./routes/addressRoute')(app);
+require('./routes/orderRoute')(app);
 
 
 mongoose.Promise = global.Promise;

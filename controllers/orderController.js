@@ -1,0 +1,208 @@
+const mongoose = require('mongoose');
+const Order = require('../models/orderModel');
+const User = require('../models/userModel');
+const Address = require('../models/addressModel');
+const Cart = require('../models/cartModel');
+const Product = require('../models/productmodel');
+const SubCategory = require('../models/subCategoryModel');
+const Category = require('../models/categoryModel');
+const Coupon = require('../models/couponModel');
+
+
+const { createOrderValidation, updateOrderStatusValidation } = require('../validations/orderValidation');
+
+
+
+
+exports.checkOut = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const { shippingAddressId, paymentMethod } = req.body;
+        if (!shippingAddressId || !paymentMethod) {
+            return res.status(400).json({ status: 400, message: 'Shipping address and payment method are required.' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found' });
+        }
+
+        const cart = await Cart.findOne({ user: userId });
+        if (!cart) {
+            return res.status(404).json({ status: 404, message: 'Cart not found' });
+        }
+
+        const shippingAddress = await Address.findById(shippingAddressId);
+        if (!shippingAddress) {
+            return res.status(404).json({ status: 404, message: 'Shipping address not found' });
+        }
+
+        let totalAmount = 0;
+        for (const cartProduct of cart.products) {
+            totalAmount += cartProduct.price * cartProduct.quantity;
+        }
+
+        const order = new Order({
+            user: userId,
+            products: cart.products,
+            totalAmount,
+            shippingAddress: shippingAddressId,
+            paymentMethod,
+        });
+
+        for (const cartProduct of cart.products) {
+            const product = await Product.findById(cartProduct.product);
+            if (!product) {
+                return res.status(404).json({ status: 404, message: 'Product not found' });
+            }
+            product.stock -= cartProduct.quantity;
+            await product.save();
+        }
+
+        await Cart.deleteOne({ _id: cart._id });
+
+        await order.save();
+
+        return res.status(201).json({ status: 201, message: 'Order created successfully', data: order });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error processing checkout', error: error.message });
+    }
+};
+
+
+
+exports.createOrder = async (req, res) => {
+    try {
+        const { error } = createOrderValidation.validate(req.body);
+
+        if (error) {
+            return res.status(400).json({ status: 400, message: error.details[0].message });
+        }
+
+        const { products, shippingAddressId, paymentMethod } = req.body;
+        const userId = req.user.id;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found' });
+        }
+
+        const cart = await Cart.findOne({ user: userId });
+        if (!cart) {
+            return res.status(404).json({ status: 404, message: 'Cart not found' });
+        }
+
+        const address = await Address.findById(shippingAddressId);
+        if (!address) {
+            return res.status(404).json({ status: 404, message: 'Shipping address not found' });
+        }
+
+        const orderProducts = [];
+        let totalAmount = 0;
+
+        for (const productItem of products) {
+            const productId = productItem.product;
+            if (!mongoose.isValidObjectId(productId)) {
+                return res.status(400).json({ status: 400, message: `Invalid product ID: ${productId}` });
+            }
+
+            const productIdObject = new mongoose.Types.ObjectId(productId);
+
+            const cartProduct = cart.products.find(
+                (item) => item.product.equals(productIdObject)
+            );
+
+            if (!cartProduct) {
+                return res.status(404).json({
+                    status: 404,
+                    message: `Product with ID ${productId} not found in cart`,
+                });
+            }
+
+            const productQuantity = productItem.quantity || cartProduct.quantity;
+
+            cartProduct.quantity -= productQuantity;
+
+            const productPrice = cartProduct.price;
+            const productTotalAmount = productPrice * productQuantity;
+
+            totalAmount += productTotalAmount;
+
+            orderProducts.push({
+                product: productIdObject,
+                quantity: productQuantity,
+                price: productPrice,
+                totalAmount: productTotalAmount,
+            });
+        }
+
+        await cart.save();
+
+        const order = new Order({
+            user: userId,
+            products: orderProducts,
+            totalAmount,
+            shippingAddress: shippingAddressId,
+            paymentMethod,
+        });
+
+        await order.save();
+
+        return res.status(201).json({ status: 201, message: 'Order created successfully', data: order });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error creating order', error: error.message });
+    }
+};
+
+
+exports.getAllOrders = async (req, res) => {
+    try {
+        const orders = await Order.find().populate('user', 'username').populate('shippingAddress', 'address');
+        return res.status(200).json({ status: 200, message: 'Orders retrieved successfully', data: orders });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching orders', error: error.message });
+    }
+};
+
+
+exports.getOrderById = async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const order = await Order.findById(orderId).populate('user', 'username').populate('shippingAddress', 'address');
+
+        if (!order) {
+            return res.status(404).json({ status: 404, message: 'Order not found' });
+        }
+
+        return res.status(200).json({ status: 200, message: 'Order retrieved successfully', data: order });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching order', error: error.message });
+    }
+};
+
+
+exports.updateOrderStatus = async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const { status } = req.body;
+
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({ status: 404, message: 'Order not found' });
+        }
+
+        order.status = status;
+        await order.save();
+
+        return res.status(200).json({ status: 200, message: 'Order status updated successfully', data: order });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error updating order status', error: error.message });
+    }
+};
