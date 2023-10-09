@@ -9,74 +9,81 @@ const Category = require('../models/categoryModel');
 const Coupon = require('../models/couponModel');
 
 
-const { createOrderValidation, updateOrderStatusValidation } = require('../validations/orderValidation');
+const { createOrderValidation, updateOrderStatusValidation, orderIdValidation } = require('../validations/orderValidation');
 
 
 
-
-exports.checkOut = async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-        const { shippingAddressId, paymentMethod } = req.body;
-        if (!shippingAddressId || !paymentMethod) {
-            return res.status(400).json({ status: 400, message: 'Shipping address and payment method are required.' });
-        }
-
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ status: 404, message: 'User not found' });
-        }
-
-        const cart = await Cart.findOne({ user: userId });
-        if (!cart) {
-            return res.status(404).json({ status: 404, message: 'Cart not found' });
-        }
-
-        const shippingAddress = await Address.findById(shippingAddressId);
-        if (!shippingAddress) {
-            return res.status(404).json({ status: 404, message: 'Shipping address not found' });
-        }
-
-        let totalAmount = 0;
-        for (const cartProduct of cart.products) {
-            totalAmount += cartProduct.price * cartProduct.quantity;
-        }
-
-        const order = new Order({
-            user: userId,
-            products: cart.products,
-            totalAmount,
-            shippingAddress: shippingAddressId,
-            paymentMethod,
-        });
-
-        for (const cartProduct of cart.products) {
-            const product = await Product.findById(cartProduct.product);
-            if (!product) {
-                return res.status(404).json({ status: 404, message: 'Product not found' });
-            }
-            product.stock -= cartProduct.quantity;
-            await product.save();
-        }
-
-        await Cart.deleteOne({ _id: cart._id });
-
-        await order.save();
-
-        return res.status(201).json({ status: 201, message: 'Order created successfully', data: order });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ status: 500, message: 'Error processing checkout', error: error.message });
-    }
+const generateTrackingNumber = () => {
+    const date = new Date();
+    const randomId = Math.floor(Math.random() * 10000);
+    const trackingNumber = `TN-${date.getFullYear()}${date.getMonth() + 1}${date.getDate()}-${randomId}`;
+    return trackingNumber;
 };
+
+
+
+// exports.checkOut = async (req, res) => {
+//     try {
+//         const userId = req.user.id;
+
+//         const { shippingAddressId, paymentMethod } = req.body;
+//         if (!shippingAddressId || !paymentMethod) {
+//             return res.status(400).json({ status: 400, message: 'Shipping address and payment method are required.' });
+//         }
+
+//         const user = await User.findById(userId);
+//         if (!user) {
+//             return res.status(404).json({ status: 404, message: 'User not found' });
+//         }
+
+//         const cart = await Cart.findOne({ user: userId });
+//         if (!cart) {
+//             return res.status(404).json({ status: 404, message: 'Cart not found' });
+//         }
+
+//         const shippingAddress = await Address.findById(shippingAddressId);
+//         if (!shippingAddress) {
+//             return res.status(404).json({ status: 404, message: 'Shipping address not found' });
+//         }
+
+//         let totalAmount = 0;
+//         for (const cartProduct of cart.products) {
+//             totalAmount += cartProduct.price * cartProduct.quantity;
+//         }
+
+//         const order = new Order({
+//             user: userId,
+//             products: cart.products,
+//             totalAmount,
+//             shippingAddress: shippingAddressId,
+//             paymentMethod,
+//         });
+
+//         for (const cartProduct of cart.products) {
+//             const product = await Product.findById(cartProduct.product);
+//             if (!product) {
+//                 return res.status(404).json({ status: 404, message: 'Product not found' });
+//             }
+//             product.stock -= cartProduct.quantity;
+//             await product.save();
+//         }
+
+//         await Cart.deleteOne({ _id: cart._id });
+
+//         await order.save();
+
+//         return res.status(201).json({ status: 201, message: 'Order created successfully', data: order });
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(500).json({ status: 500, message: 'Error processing checkout', error: error.message });
+//     }
+// };
 
 
 
 exports.createOrder = async (req, res) => {
     try {
         const { error } = createOrderValidation.validate(req.body);
-
         if (error) {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
@@ -146,6 +153,8 @@ exports.createOrder = async (req, res) => {
             totalAmount,
             shippingAddress: shippingAddressId,
             paymentMethod,
+            trackingNumber: generateTrackingNumber(),
+
         });
 
         await order.save();
@@ -172,6 +181,11 @@ exports.getAllOrders = async (req, res) => {
 exports.getOrderById = async (req, res) => {
     try {
         const orderId = req.params.id;
+
+        const { error } = orderIdValidation.validate(req.params);
+        if (error) {
+            return res.status(400).json({ status: 400, message: error.details[0].message });
+        }
         const order = await Order.findById(orderId).populate('user', 'username').populate('shippingAddress', 'address');
 
         if (!order) {
@@ -190,6 +204,11 @@ exports.updateOrderStatus = async (req, res) => {
     try {
         const orderId = req.params.id;
         const { status } = req.body;
+
+        const { error } = updateOrderStatusValidation.validate({ orderId, status });
+        if (error) {
+            return res.status(400).json({ status: 400, message: error.details[0].message });
+        }
 
         const order = await Order.findById(orderId);
 

@@ -16,7 +16,7 @@ module.exports = (app) => {
 
     // api/user/
 
-    app.post('/api/user/checkout', [authJwt.verifyToken], auth.checkOut);
+    // app.post('/api/user/checkout', [authJwt.verifyToken], auth.checkOut);
     app.post('/api/user/order', [authJwt.verifyToken], auth.createOrder);
     app.get('/api/user/order', [authJwt.verifyToken], auth.getAllOrders);
     app.get('/api/user/order/:id', [authJwt.verifyToken], auth.getOrderById);

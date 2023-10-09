@@ -38,8 +38,12 @@ const orderSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['Pending', 'Completed'],
+        enum: ['Pending', 'Completed', 'Failed'],
         default: 'Pending',
+    },
+    trackingNumber: {
+        type: String,
+        unique: true,
     },
     createdAt: {
         type: Date,

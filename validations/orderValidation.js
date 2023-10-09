@@ -31,6 +31,26 @@ exports.createOrderValidation = Joi.object({
 
 
 
+exports.orderIdValidation = Joi.object({
+    orderId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
+});
+
+
 exports.updateOrderStatusValidation = Joi.object({
+    orderId: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .required(),
     status: Joi.string().valid('Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled').required(),
 });
