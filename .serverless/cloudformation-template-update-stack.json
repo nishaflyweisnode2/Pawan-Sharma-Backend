@@ -162,7 +162,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pawansharma-backend/dev/1696858750323-2023-10-09T13:39:10.323Z/pawansharma-backend.zip"
+          "S3Key": "serverless/pawansharma-backend/dev/1696947704817-2023-10-10T14:21:44.817Z/pawansharma-backend.zip"
         },
         "Handler": "server.handler",
         "Runtime": "nodejs18.x",
@@ -180,14 +180,14 @@
         "AppLogGroup"
       ]
     },
-    "AppLambdaVersionVOanNk8Aak4FaLVIIWHJvZdxyFuh0imHQwMlJvUu84": {
+    "AppLambdaVersionEjdscEDcQDjatnaIiJaun9CdB5n8opaYW8c9TEOx4A": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "AppLambdaFunction"
         },
-        "CodeSha256": "viu3h/DvmszoGl+xldgfetKF6B3/EH1cOu8FxZ+X1Ys="
+        "CodeSha256": "Mf+au5tQkhcQTPVRbVQw6RGwozydug0W+/qd5cPeYhE="
       }
     },
     "ApiGatewayRestApi": {
@@ -408,7 +408,7 @@
         "AppLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1696858668086": {
+    "ApiGatewayDeployment1696947621696": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -473,7 +473,7 @@
     "AppLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "AppLambdaVersionVOanNk8Aak4FaLVIIWHJvZdxyFuh0imHQwMlJvUu84"
+        "Ref": "AppLambdaVersionEjdscEDcQDjatnaIiJaun9CdB5n8opaYW8c9TEOx4A"
       },
       "Export": {
         "Name": "sls-pawansharma-backend-dev-AppLambdaFunctionQualifiedArn"

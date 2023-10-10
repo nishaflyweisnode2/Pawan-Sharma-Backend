@@ -225,3 +225,17 @@ exports.updateOrderStatus = async (req, res) => {
         return res.status(500).json({ status: 500, message: 'Error updating order status', error: error.message });
     }
 };
+
+
+exports.getOrderHistory = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const orders = await Order.find({ user: userId }).populate('products');
+
+        return res.status(200).json({ status: 200, message: 'Order history retrieved successfully', data: orders });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Error fetching order history', error: error.message });
+    }
+};

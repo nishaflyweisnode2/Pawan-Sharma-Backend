@@ -13,6 +13,7 @@ exports.addToCartValidation = Joi.object({
         })
         .required(),
     size: Joi.string().required(),
+    wallet: Joi.string().optional(),
     quantity: Joi.number().integer().min(1).required(),
 });
 

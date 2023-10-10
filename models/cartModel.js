@@ -34,7 +34,23 @@ const CartSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Coupon",
         default: null,
-    }
+    },
+    wallet: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'UserWallet',
+    },
+    walletUsed: {
+        type: Boolean,
+        default: false
+    },
+    shippingPrice: {
+        type: Number,
+        default: 0,
+    },
+    // totalPaidAmount: {
+    //     type: Number
+    // }
+
 }, {
     timestamps: true
 })

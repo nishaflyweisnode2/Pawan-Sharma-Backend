@@ -21,5 +21,7 @@ module.exports = (app) => {
     app.get('/api/user/order', [authJwt.verifyToken], auth.getAllOrders);
     app.get('/api/user/order/:id', [authJwt.verifyToken], auth.getOrderById);
     app.put('/api/user/order/:id/status', [authJwt.verifyToken], auth.updateOrderStatus);
+    app.get('/api/user/history/order', [authJwt.verifyToken], auth.getOrderHistory);
+
 
 }

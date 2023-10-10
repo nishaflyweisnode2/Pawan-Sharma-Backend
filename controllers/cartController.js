@@ -5,16 +5,174 @@ const SubCategory = require('../models/subCategoryModel');
 const Category = require('../models/categoryModel');
 const User = require('../models/userModel');
 const Coupon = require('../models/couponModel');
+const UserWallet = require('../models/walletModel');
 
 
 const { addToCartValidation, updateCartValidation, updateCartQuantityValidation, applyCouponValidation, updateApplyCouponValidation } = require('../validations/cartValidation');
 
 
 
+// exports.addToCart = async (req, res) => {
+//     try {
+//         const { productId, size, quantity } = req.body;
+//         const userId = req.user.id;
+
+//         const { error } = addToCartValidation.validate(req.body);
+
+//         if (error) {
+//             return res.status(400).json({ status: 400, message: error.details[0].message });
+//         }
+
+//         const user = await User.findById(userId);
+
+//         if (!user) {
+//             return res.status(404).json({ status: 404, message: 'User not found' });
+//         }
+
+//         const product = await Product.findById(productId);
+//         if (!product) {
+//             return res.status(404).json({ status: 404, message: 'Product not found' });
+//         }
+
+//         let cart = await Cart.findOne({ user: userId });
+
+//         if (!cart) {
+//             cart = new Cart({
+//                 user: userId,
+//                 products: [{ product: productId, size, quantity, price: product.price, totalAmount: product.price * quantity }],
+
+//             });
+//         } else {
+//             const existingProduct = cart.products.find(
+//                 (item) => item.product.toString() === productId
+//             );
+
+//             if (existingProduct) {
+//                 existingProduct.size = size;
+//                 existingProduct.quantity += quantity;
+//                 existingProduct.totalAmount = existingProduct.price * existingProduct.quantity;
+//             } else {
+//                 cart.products.push({ product: productId, size, quantity, price: product.price, totalAmount: product.price * quantity });
+//             }
+//         }
+
+//         await cart.save();
+//         return res.status(201).json({ status: 2001, message: 'Product added to cart successfully', data: cart });
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(500).json({ message: 'Error adding product to cart', error: error.message });
+//     }
+// };
+
+// exports.addToCart = async (req, res) => {
+//     try {
+//         const { productId, size, quantity, wallet } = req.body;
+//         const userId = req.user.id;
+//         const minShippingAmount1 = 500;
+//         const minShippingAmount2 = 1000;
+//         const shippingPrice1 = 10;
+//         const shippingPrice2 = 0;
+//         const shippingPrice3 = 50;
+
+//         const { error } = addToCartValidation.validate(req.body);
+
+//         if (error) {
+//             return res.status(400).json({ status: 400, message: error.details[0].message });
+//         }
+
+//         const user = await User.findById(userId);
+
+//         if (!user) {
+//             return res.status(404).json({ status: 404, message: 'User not found' });
+//         }
+
+//         const product = await Product.findById(productId);
+//         if (!product) {
+//             return res.status(404).json({ status: 404, message: 'Product not found' });
+//         }
+
+//         let cart = await Cart.findOne({ user: userId });
+
+//         if (!cart) {
+//             cart = new Cart({
+//                 user: userId,
+//                 products: [{ product: productId, size, quantity, price: product.price, totalAmount: product.price * quantity }],
+//                 shippingPrice: 0,
+//             });
+//         } else {
+//             const existingProduct = cart.products.find(
+//                 (item) => item.product.toString() === productId
+//             );
+
+//             if (existingProduct) {
+//                 existingProduct.size = size;
+//                 existingProduct.quantity += quantity;
+//                 existingProduct.totalAmount = existingProduct.price * existingProduct.quantity;
+//             } else {
+//                 cart.products.push({ product: productId, size, quantity, price: product.price, totalAmount: product.price * quantity });
+//             }
+//         }
+
+//         let totalCartAmount = cart.products.reduce((total, item) => total + item.totalAmount, 0);
+
+//         if (wallet) {
+//             const userWallet = await UserWallet.findById(wallet);
+//             console.log("userWallet", userWallet);
+
+//             if (!userWallet) {
+//                 return res.status(404).json({ status: 404, message: 'Wallet not found' });
+//             }
+
+//             if (userWallet.user.toString() !== userId) {
+//                 return res.status(400).json({ status: 400, message: 'User and wallet user do not match' });
+//             }
+
+//             if (userWallet.balance <= 0) {
+//                 return res.status(400).json({ status: 400, message: 'Insufficient wallet balance' });
+//             }
+
+//             console.log("userWallet balance before deduction:", userWallet.balance);
+//             console.log("totalCartAmount before deduction:", totalCartAmount);
+
+//             totalCartAmount -= userWallet.balance;
+//             if (totalCartAmount < 0) {
+//                 totalCartAmount = 0;
+//             }
+
+//             console.log("userWallet balance after deduction:", userWallet.balance);
+//             console.log("totalCartAmount after deduction:", totalCartAmount);
+
+//             userWallet.balance = 0;
+//             await userWallet.save();
+//             cart.walletUsed = true;
+//             cart.wallet = wallet;
+//         }
+
+//         if (totalCartAmount >= minShippingAmount1 && totalCartAmount < minShippingAmount2) {
+//             cart.shippingPrice = shippingPrice1;
+//         } else if (totalCartAmount >= minShippingAmount2) {
+//             cart.shippingPrice = shippingPrice2;
+//         } else {
+//             cart.shippingPrice = shippingPrice3;
+//         }
+
+//         await cart.save();
+//         return res.status(201).json({ status: 201, message: 'Product added to cart successfully', data: cart });
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(500).json({ message: 'Error adding product to cart', error: error.message });
+//     }
+// };
+
 exports.addToCart = async (req, res) => {
     try {
-        const { productId, size, quantity } = req.body;
+        const { productId, size, quantity, wallet } = req.body;
         const userId = req.user.id;
+        const minShippingAmount1 = 500;
+        const minShippingAmount2 = 1000;
+        const shippingPrice1 = 10;
+        const shippingPrice2 = 0;
+        const shippingPrice3 = 50;
 
         const { error } = addToCartValidation.validate(req.body);
 
@@ -39,7 +197,7 @@ exports.addToCart = async (req, res) => {
             cart = new Cart({
                 user: userId,
                 products: [{ product: productId, size, quantity, price: product.price, totalAmount: product.price * quantity }],
-
+                shippingPrice: 0,
             });
         } else {
             const existingProduct = cart.products.find(
@@ -55,8 +213,60 @@ exports.addToCart = async (req, res) => {
             }
         }
 
+        let totalCartAmount;
+
+        if (wallet) {
+            const userWallet = await UserWallet.findById(wallet);
+            console.log("userWallet", userWallet);
+
+            if (!userWallet) {
+                return res.status(404).json({ status: 404, message: 'Wallet not found' });
+            }
+
+            if (userWallet.user.toString() !== userId) {
+                return res.status(400).json({ status: 400, message: 'User and wallet user do not match' });
+            }
+
+            if (userWallet.balance <= 0) {
+                return res.status(400).json({ status: 400, message: 'Insufficient wallet balance' });
+            }
+
+            console.log("userWallet balance before deduction:", userWallet.balance);
+
+            totalCartAmount = cart.products.reduce((total, item) => total + item.totalAmount, 0) - userWallet.balance;
+            if (totalCartAmount < 0) {
+                totalCartAmount = 0;
+            }
+
+            console.log("userWallet balance after deduction:", userWallet.balance);
+            console.log("totalCartAmount balance after deduction:", totalCartAmount);
+
+            userWallet.balance = 0;
+            await userWallet.save();
+            cart.walletUsed = true;
+            cart.wallet = wallet;
+            cart.products.totalAmount = totalCartAmount
+            console.log(totalCartAmount);
+        } else {
+            totalCartAmount = cart.products.reduce((total, item) => total + item.totalAmount, 0);
+        }
+        console.log(totalCartAmount);
+
+        if (totalCartAmount >= minShippingAmount1) {
+            cart.shippingPrice = shippingPrice1;
+        } else if (totalCartAmount >= minShippingAmount2) {
+            cart.shippingPrice = shippingPrice2;
+        } else {
+            cart.shippingPrice = shippingPrice3;
+        }
+
+        console.log(totalCartAmount);
+
         await cart.save();
-        return res.status(201).json({ status: 2001, message: 'Product added to cart successfully', data: cart });
+        console.log(totalCartAmount);
+        console.log("cart", cart);
+
+        return res.status(201).json({ status: 201, message: 'Product added to cart successfully', data: cart });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Error adding product to cart', error: error.message });
@@ -77,7 +287,8 @@ exports.getCart = async (req, res) => {
         const cart = await Cart.findOne({ user: userId }).populate({
             path: 'products.product',
             select: 'productName price',
-        }).populate('coupon', 'code description discountValue');
+        }).populate('coupon', 'code description discountValue')
+            .populate('wallet', 'balance');
 
         if (!cart) {
             return res.status(404).json({ status: 404, message: 'Cart not found' });
@@ -91,10 +302,64 @@ exports.getCart = async (req, res) => {
 };
 
 
+// exports.updateCart = async (req, res) => {
+//     try {
+//         const { productId, size, quantity } = req.body;
+//         const userId = req.user.id;
+
+//         const { error } = updateCartValidation.validate(req.body);
+
+//         if (error) {
+//             return res.status(400).json({ status: 400, message: error.details[0].message });
+//         }
+
+//         const user = await User.findById(userId);
+
+//         if (!user) {
+//             return res.status(404).json({ status: 404, message: 'User not found' });
+//         }
+
+//         const product = await Product.findById(productId);
+
+//         if (!product) {
+//             return res.status(404).json({ status: 404, message: 'Product not found' });
+//         }
+
+//         const cart = await Cart.findOne({ user: userId });
+
+//         if (!cart) {
+//             return res.status(404).json({ status: 404, message: 'Cart not found' });
+//         }
+
+//         const cartProduct = cart.products.find(
+//             (item) => item.product.toString() === productId);
+
+//         if (!cartProduct) {
+//             return res.status(404).json({ status: 404, message: 'Product not found in cart' });
+//         }
+
+//         cartProduct.size = size;
+//         cartProduct.quantity = quantity;
+//         cartProduct.totalAmount = product.price * quantity;
+
+//         await cart.save();
+
+//         return res.status(200).json({ status: 200, message: 'Cart updated successfully', data: cart });
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(500).json({ message: 'Error updating cart', error: error.message });
+//     }
+// };
+
 exports.updateCart = async (req, res) => {
     try {
         const { productId, size, quantity } = req.body;
         const userId = req.user.id;
+        const minShippingAmount1 = 500;
+        const minShippingAmount2 = 1000;
+        const shippingPrice1 = 10;
+        const shippingPrice2 = 0;
+        const shippingPrice3 = 50;
 
         const { error } = updateCartValidation.validate(req.body);
 
@@ -131,6 +396,16 @@ exports.updateCart = async (req, res) => {
         cartProduct.quantity = quantity;
         cartProduct.totalAmount = product.price * quantity;
 
+        const totalCartAmount = cart.products.reduce((total, item) => total + item.totalAmount, 0);
+
+        if (totalCartAmount >= minShippingAmount2) {
+            cart.shippingPrice = shippingPrice2;
+        } else if (totalCartAmount >= minShippingAmount1) {
+            cart.shippingPrice = shippingPrice1;
+        } else {
+            cart.shippingPrice = shippingPrice3;
+        }
+
         await cart.save();
 
         return res.status(200).json({ status: 200, message: 'Cart updated successfully', data: cart });
@@ -162,6 +437,11 @@ exports.updateCartQuantity = async (req, res) => {
     try {
         const { productId, quantity } = req.body;
         const userId = req.user.id;
+        const minShippingAmount1 = 500;
+        const minShippingAmount2 = 1000;
+        const shippingPrice1 = 10;
+        const shippingPrice2 = 0;
+        const shippingPrice3 = 50;
 
         const { error } = updateCartQuantityValidation.validate(req.body);
 
@@ -198,6 +478,15 @@ exports.updateCartQuantity = async (req, res) => {
         cartProduct.quantity = quantity;
         cartProduct.totalAmount = product.price * quantity;
 
+        const totalCartAmount = cart.products.reduce((total, item) => total + item.totalAmount, 0);
+
+        if (totalCartAmount >= minShippingAmount2) {
+            cart.shippingPrice = shippingPrice2;
+        } else if (totalCartAmount >= minShippingAmount1) {
+            cart.shippingPrice = shippingPrice1;
+        } else {
+            cart.shippingPrice = shippingPrice3;
+        }
 
         await cart.save();
 
