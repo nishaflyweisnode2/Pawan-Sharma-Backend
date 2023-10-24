@@ -7,6 +7,7 @@ const Product = require('../models/productmodel');
 const SubCategory = require('../models/subCategoryModel');
 const Category = require('../models/categoryModel');
 const Coupon = require('../models/couponModel');
+const Notification = require('../models/notificationModel');
 
 
 const { createOrderValidation, updateOrderStatusValidation, orderIdValidation } = require('../validations/orderValidation');
@@ -18,6 +19,29 @@ const generateTrackingNumber = () => {
     const randomId = Math.floor(Math.random() * 10000);
     const trackingNumber = `TN-${date.getFullYear()}${date.getMonth() + 1}${date.getDate()}-${randomId}`;
     return trackingNumber;
+};
+
+
+const createOrderNotification = async (userId, orderId, totalAmount) => {
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const orderMessage = `Thank you for your order! Your order ID is ${orderId} and the total amount is $${totalAmount}.`;
+
+        const orderNotification = new Notification({
+            recipient: user._id,
+            content: orderMessage,
+            type: 'order',
+        });
+
+        await orderNotification.save();
+    } catch (error) {
+        console.error(error);
+        throw new Error('Error creating order notification');
+    }
 };
 
 
@@ -158,6 +182,9 @@ exports.createOrder = async (req, res) => {
         });
 
         await order.save();
+
+        await createOrderNotification(userId, order._id, totalAmount);
+
 
         return res.status(201).json({ status: 201, message: 'Order created successfully', data: order });
     } catch (error) {

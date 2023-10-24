@@ -20,6 +20,8 @@
     "joi": "^17.10.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.3",
+    "mongoose-aggregate-paginate": "^2.0.2",
+    "mongoose-paginate": "^5.0.3",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemon": "^3.0.1",

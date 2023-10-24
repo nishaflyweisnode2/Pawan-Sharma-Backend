@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const Notification = require('../models/notificationModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require("bcryptjs");
 
@@ -27,6 +28,15 @@ exports.register = async (req, res) => {
         });
 
         await user.save();
+
+        const welcomeMessage = `Welcome, ${user.userName}! Thank you for registering.`;
+        const welcomeNotification = new Notification({
+            recipient: user._id,
+            content: welcomeMessage,
+            type: 'welcome',
+        });
+        await welcomeNotification.save();
+
 
         return res.status(201).json({ status: 201, message: 'User registered successfully', data: user });
     } catch (error) {

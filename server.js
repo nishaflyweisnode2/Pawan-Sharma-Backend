@@ -29,6 +29,7 @@ require('./routes/orderRoute')(app);
 require('./routes/paymentRoute')(app);
 require('./routes/walletRoute')(app);
 require('./routes/OfferRoute')(app);
+require('./routes/notificationRoute')(app);
 
 
 mongoose.Promise = global.Promise;
