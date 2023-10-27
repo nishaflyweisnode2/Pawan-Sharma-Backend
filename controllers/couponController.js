@@ -6,13 +6,16 @@ const { couponSchema, couponIdSchema, updateCouponSchema } = require('../validat
 
 exports.createCoupon = async (req, res) => {
     try {
-        const { error } = couponSchema.validate(req.body);
+        const { code, description, discountType, discountValue, startDate, expiryDate } = req.body;
 
+        const { error } = couponSchema.validate({ code, description, discountType, discountValue, startDate, expiryDate });
         if (error) {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        const { code, description, discountType, discountValue, startDate, expiryDate } = req.body;
+        if (!req.file) {
+            return res.status(400).json({ status: 400, error: "Image file is required" });
+        }
 
         const checkCoupon = await Coupon.findOne({ code: code })
         if (checkCoupon) {
@@ -21,6 +24,7 @@ exports.createCoupon = async (req, res) => {
 
         const coupon = new Coupon({
             code,
+            image: req.file.path,
             description,
             discountType,
             discountValue,
@@ -77,34 +81,56 @@ exports.getCouponById = async (req, res) => {
 exports.updateCoupon = async (req, res) => {
     try {
         const couponId = req.params.couponId;
-        const { code, description, discountType, discountValue, startDate, expiryDate } = req.body;
+        const updateFields = {};
+        if (req.body.code) updateFields.code = req.body.code;
+        if (req.body.description) updateFields.description = req.body.description;
+        if (req.body.discountType) updateFields.discountType = req.body.discountType;
+        if (req.body.discountValue) updateFields.discountValue = req.body.discountValue;
+        if (req.body.startDate) updateFields.startDate = req.body.startDate;
+        if (req.body.expiryDate) updateFields.expiryDate = req.body.expiryDate;
 
-        const { error } = updateCouponSchema.validate({ couponId, code, description, discountType, discountValue, startDate, expiryDate });
+        const { error } = updateCouponSchema.validate({
+            couponId,
+            code: req.body.code,
+            description: req.body.description,
+            discountType: req.body.discountType,
+            discountValue: req.body.discountValue,
+            startDate: req.body.startDate,
+            expiryDate: req.body.expiryDate,
+        });
 
         if (error) {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        const checkCoupon = await Coupon.findOne({ code: code })
-        if (checkCoupon) {
-            return res.status(400).json({ status: 400, message: 'Coupon Code already exisit' });
+        if (req.file) {
+            updateFields.image = req.file.path;
         }
 
-        const coupon = await Coupon.findByIdAndUpdate(couponId, {
-            code,
-            description,
-            discountType,
-            discountValue,
-            startDate,
-            expiryDate,
-        },
-            { new: true });
+        if (Object.keys(updateFields).length === 0) {
+            return res.status(400).json({ status: 400, message: "No valid fields to update" });
+        }
 
-        if (!coupon) {
+        existingCoupon = await Coupon.findById(couponId);
+
+        if (!existingCoupon) {
             return res.status(404).json({ status: 404, message: 'Coupon not found' });
         }
 
-        return res.status(200).json({ status: 200, message: 'Coupon updated successfully', data: coupon });
+        if (updateFields.code !== existingCoupon.code) {
+            const checkCoupon = await Coupon.findOne({ code: updateFields.code });
+            if (checkCoupon) {
+                return res.status(400).json({ status: 400, message: 'Coupon Code already exists' });
+            }
+        }
+
+        const updatedCoupon = await Coupon.findByIdAndUpdate(couponId, updateFields, { new: true });
+
+        if (!updatedCoupon) {
+            return res.status(404).json({ status: 404, message: 'Offer not found' });
+        }
+
+        return res.status(200).json({ status: 200, message: 'Coupon updated successfully', data: updatedCoupon });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error updating coupon', error: error.message });

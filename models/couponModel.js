@@ -7,6 +7,9 @@ const couponSchema = new mongoose.Schema({
         unique: true,
         trim: true,
     },
+    image: {
+        type: String,
+    },
     description: {
         type: String,
     },
