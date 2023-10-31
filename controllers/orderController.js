@@ -251,7 +251,14 @@ exports.getAllOrders = async (req, res) => {
                 path: 'products.product',
                 select: 'productName price image',
             })
-            .populate('user', 'username').populate('shippingAddress', 'address');
+            .populate({
+                path: 'user',
+                select: 'userName mobileNumber',
+            })
+            .populate({
+                path: 'shippingAddress',
+                select: 'fullName phone addressLine1 city state postalCode country isDefault',
+            });
         return res.status(200).json({ status: 200, message: 'Orders retrieved successfully', data: orders });
     } catch (error) {
         console.error(error);
@@ -262,13 +269,25 @@ exports.getAllOrders = async (req, res) => {
 
 exports.getOrderById = async (req, res) => {
     try {
-        const orderId = req.params.id;
+        const orderId = req.params.orderId;
 
         const { error } = orderIdValidation.validate(req.params);
         if (error) {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
-        const order = await Order.findById(orderId).populate('user', 'username').populate('shippingAddress', 'address');
+        const order = await Order.findById(orderId)
+            .populate({
+                path: 'products.product',
+                select: 'productName price image',
+            })
+            .populate({
+                path: 'user',
+                select: 'userName mobileNumber',
+            })
+            .populate({
+                path: 'shippingAddress',
+                select: 'fullName phone addressLine1 city state postalCode country isDefault',
+            });
 
         if (!order) {
             return res.status(404).json({ status: 404, message: 'Order not found' });
@@ -317,7 +336,14 @@ exports.getOrderHistory = async (req, res) => {
             path: 'products.product',
             select: 'productName price image',
         })
-            .populate('user', 'username').populate('shippingAddress', 'address');
+            .populate({
+                path: 'user',
+                select: 'userName mobileNumber',
+            })
+            .populate({
+                path: 'shippingAddress',
+                select: 'fullName phone addressLine1 city state postalCode country isDefault',
+            });
 
         return res.status(200).json({ status: 200, message: 'Order history retrieved successfully', data: orders });
     } catch (error) {
