@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const offerSchema = new mongoose.Schema({
+    product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+    },
     title: {
         type: String,
     },

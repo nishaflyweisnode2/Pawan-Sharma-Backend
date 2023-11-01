@@ -1,4 +1,5 @@
 const Offer = require('../models/offerModel');
+const Product = require('../models/productmodel');
 
 const { createOfferSchema, updateOfferSchema } = require('../validations/offerValidation');
 
@@ -15,9 +16,22 @@ exports.createOffer = async (req, res) => {
             return res.status(400).json({ status: 400, error: "Image file is required" });
         }
 
-        const { title, description, code, discountPercentage, validFrom, validTo } = req.body;
+        const { product, title, description, code, discountPercentage, validFrom, validTo } = req.body;
+
+        const checkProduct = await Product.findById(product);
+
+        if (!checkProduct) {
+            return res.status(404).json({ status: 404, message: 'Product not found' });
+        }
+
+        const checkOffer = await Offer.findOne({ title });
+
+        if (checkOffer) {
+            return res.status(404).json({ status: 404, message: 'Title exist with this name' });
+        }
 
         const offer = new Offer({
+            product,
             title,
             image: req.file.path,
             description,
@@ -69,6 +83,7 @@ exports.updateOffer = async (req, res) => {
     try {
         const offerId = req.params.offerId;
         const updateFields = {};
+        if (req.body.product) updateFields.product = req.body.product;
         if (req.body.title) updateFields.title = req.body.title;
         if (req.body.description) updateFields.description = req.body.description;
         if (req.body.code) updateFields.code = req.body.code;
@@ -78,6 +93,7 @@ exports.updateOffer = async (req, res) => {
 
         const { error } = updateOfferSchema.validate({
             offerId,
+            product: req.body.product,
             title: req.body.title,
             description: req.body.description,
             code: req.body.code,
@@ -88,6 +104,22 @@ exports.updateOffer = async (req, res) => {
 
         if (error) {
             return res.status(400).json({ status: 400, message: error.details[0].message });
+        }
+
+        if (req.body.product) {
+            const checkProduct = await Product.findById(req.body.product);
+
+            if (!checkProduct) {
+                return res.status(404).json({ status: 404, message: 'Product not found' });
+            }
+        }
+
+        if (req.body.title) {
+            const checkOffer = await Offer.findOne({ title });
+
+            if (checkOffer) {
+                return res.status(404).json({ status: 404, message: 'Title exist with this name' });
+            }
         }
 
         if (req.file) {
