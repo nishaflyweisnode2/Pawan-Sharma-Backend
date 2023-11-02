@@ -44,6 +44,17 @@ exports.getAllCategories = async (req, res) => {
 };
 
 
+exports.getAllCategoriesForAdmin = async (req, res) => {
+    try {
+        const categories = await Category.find();
+        return res.status(200).json({ status: 200, data: categories });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching categories', error: error.message });
+    }
+};
+
+
 exports.getCategoryById = async (req, res) => {
     try {
         const categoryId = req.params.categoryId;

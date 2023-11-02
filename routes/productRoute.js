@@ -17,7 +17,9 @@ module.exports = (app) => {
 
     app.post('/api/user/products', [authJwt.verifyToken], productImage.array('image'), auth.createProduct);
     app.get('/api/user/products', [authJwt.verifyToken], auth.getAllProducts);
+    app.get('/api/user/productsByAdmin', /*[authJwt.verifyToken],*/ auth.getAllProductsByAdmin);
     app.get('/api/user/products/:productId', [authJwt.verifyToken], auth.getProductById);
+    app.get('/api/user/forAdminProducts/:productId', /*[authJwt.verifyToken],*/ auth.forAdminGetProductById);
     app.put('/api/user/products/:productId', [authJwt.verifyToken], productImage.array('image'), auth.updateProduct);
     app.delete('/api/user/products/:productId', [authJwt.verifyToken], auth.deleteProduct);
     app.post('/api/user/products/:productId/reviews', [authJwt.verifyToken], auth.createProductReview);

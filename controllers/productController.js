@@ -75,7 +75,41 @@ exports.getAllProducts = async (req, res) => {
 };
 
 
+exports.getAllProductsByAdmin = async (req, res) => {
+    try {
+        const products = await Product.find();
+        return res.status(200).json({ status: 200, data: products });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching products', error: error.message });
+    }
+};
+
+
 exports.getProductById = async (req, res) => {
+    try {
+        const productId = req.params.productId;
+
+        const { error } = productIdSchema.validate(req.params);
+        if (error) {
+            return res.status(400).json({ status: 400, message: error.details[0].message });
+        }
+
+        const product = await Product.findById(productId);
+
+        if (!product) {
+            return res.status(404).json({ status: 404, message: 'Product not found' });
+        }
+
+        return res.status(200).json({ status: 200, data: product });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching product by ID', error: error.message });
+    }
+};
+
+
+exports.forAdminGetProductById = async (req, res) => {
     try {
         const productId = req.params.productId;
 
