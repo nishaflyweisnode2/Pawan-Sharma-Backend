@@ -638,7 +638,7 @@ exports.getNewArrivalProductsByCategoryAndSubCategory = async (req, res) => {
 exports.getNewArrivalProducts = async (req, res) => {
     try {
         const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 90);
 
         const newArrivalProducts = await Product.find({
             createdAt: { $gte: thirtyDaysAgo },

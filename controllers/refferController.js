@@ -6,15 +6,26 @@ const User = require('../models/userModel');
 
 exports.createReferral = async (req, res) => {
     try {
-        const { referrer, referredUser } = req.body;
+        const { referredUserId, referralCode } = req.body;
 
-        const referral = new Referral({ referrer, referredUser });
+        const referrerUser = await User.findOne({ referralCode });
+
+        if (!referrerUser) {
+            return res.status(400).json({ status: 400, message: 'Invalid referral code' });
+        }
+
+        const referral = new Referral({
+            referrer: referrerUser._id,
+            referredUser: referredUserId,
+            referralCode,
+        });
+
         await referral.save();
 
-        res.status(201).json({ message: 'Referral created successfully', data: referral });
+        return res.status(201).json({ status: 201, message: 'Referral created successfully', data: referral });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Internal server error', error: error.message });
+        return res.status(500).json({ status: 500, message: 'Error creating referral', error: error.message });
     }
 };
 

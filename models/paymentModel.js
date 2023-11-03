@@ -9,6 +9,14 @@ const paymentSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Order',
     },
+    wallet: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'UserWallet',
+    },
+    walletUsed: {
+        type: Boolean,
+        default: false
+    },
     amount: {
         type: Number,
         required: true,

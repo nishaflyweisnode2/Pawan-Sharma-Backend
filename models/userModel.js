@@ -24,6 +24,9 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ["Admin", "User"], default: "User"
     },
+    referralCode: {
+        type: String,
+    }
 
 }, { timestamps: true });
 

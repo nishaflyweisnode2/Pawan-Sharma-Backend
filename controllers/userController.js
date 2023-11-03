@@ -20,11 +20,14 @@ exports.register = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({ status: 400, message: 'User already exists with this mobile' });
         }
+        const referId = Math.floor(100000 + Math.random() * 900000);
+        const referralCode = referId;
 
         const user = new User({
             userName,
             mobileNumber,
-            otp: generateOtp()
+            otp: generateOtp(),
+            referralCode,
         });
 
         await user.save();

@@ -16,6 +16,9 @@ const referralSchema = new mongoose.Schema({
         enum: ['Pending', 'Approved', 'Rejected'],
         default: 'Pending',
     },
+    referralCode: {
+        type: String,
+    },
     reward: {
         type: Number,
         default: 0,

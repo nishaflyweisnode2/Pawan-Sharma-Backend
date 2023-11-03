@@ -8,9 +8,54 @@ const Product = require('../models/productmodel');
 const SubCategory = require('../models/subCategoryModel');
 const Category = require('../models/categoryModel');
 const Coupon = require('../models/couponModel');
+const UserWallet = require('../models/walletModel');
+
 
 const { createPaymentSchema, paymentIdSchema, trackIdSchema, updatePaymentStatusSchema } = require('../validations/paymentValidation');
 
+
+
+// exports.createPayment = async (req, res) => {
+//     try {
+//         const { error } = createPaymentSchema.validate(req.body);
+//         if (error) {
+//             return res.status(400).json({ status: 400, message: error.details[0].message });
+//         }
+
+//         const { orderId, paymentMethod } = req.body;
+//         const userId = req.user.id;
+
+//         const user = await User.findById(userId);
+//         if (!user) {
+//             return res.status(404).json({ status: 404, message: 'User not found' });
+//         }
+
+//         const order = await Order.findById(orderId);
+
+//         if (!order) {
+//             return res.status(404).json({ status: 404, message: 'Order not found' });
+//         }
+
+//         const amount = order.totalAmount;
+
+//         const payment = new Payment({
+//             user: userId,
+//             order: orderId,
+//             amount,
+//             paymentMethod,
+//         });
+
+//         await payment.save();
+
+//         order.paymentMethod = paymentMethod;
+//         await order.save();
+
+//         return res.status(201).json({ status: 201, message: 'Payment record created successfully', data: payment });
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(500).json({ status: 500, message: 'Error creating payment record', error: error.message });
+//     }
+// };
 
 
 exports.createPayment = async (req, res) => {
@@ -20,8 +65,9 @@ exports.createPayment = async (req, res) => {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        const { orderId, paymentMethod } = req.body;
+        const { orderId, paymentMethod, walletId } = req.body;
         const userId = req.user.id;
+        console.log("userId", userId);
 
         const user = await User.findById(userId);
         if (!user) {
@@ -36,19 +82,60 @@ exports.createPayment = async (req, res) => {
 
         const amount = order.totalAmount;
 
+        const walletUsed = Boolean(walletId);
+
+        let paymentAmount = amount;
+        let walletBalance = 0;
+
+        if (walletUsed) {
+            const wallet = await UserWallet.findById(walletId);
+            if (!wallet) {
+                return res.status(404).json({ status: 404, message: 'Wallet not found' });
+            }
+
+            console.log("wallet.user", wallet.user);
+
+            if (!wallet.user.equals(new mongoose.Types.ObjectId(userId))) {
+                return res.status(400).json({ status: 400, message: 'Wallet does not belong to the current user' });
+            }
+
+            walletBalance = wallet.balance;
+
+            if (walletBalance >= amount) {
+                paymentAmount = 0;
+                wallet.balance -= amount;
+            } else {
+                paymentAmount -= walletBalance;
+                wallet.balance = 0;
+            }
+
+            await wallet.save();
+        }
+
         const payment = new Payment({
             user: userId,
             order: orderId,
-            amount,
+            wallet: walletId,
+            walletUsed,
+            amount: paymentAmount,
             paymentMethod,
         });
 
         await payment.save();
 
         order.paymentMethod = paymentMethod;
+        order.status = 'Processing';
+
         await order.save();
 
-        return res.status(201).json({ status: 201, message: 'Payment record created successfully', data: payment });
+        return res.status(201).json({
+            status: 201,
+            message: 'Payment record created successfully',
+            data: {
+                payment,
+                walletBalance,
+            },
+        });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error creating payment record', error: error.message });
@@ -58,7 +145,7 @@ exports.createPayment = async (req, res) => {
 
 exports.getPayments = async (req, res) => {
     try {
-        const payments = await Payment.find();
+        const payments = await Payment.find().populate('user', 'userName mobileNumber image').populate('order').populate('wallet');
 
         return res.status(200).json({ status: 200, message: 'Payments retrieved successfully', data: payments });
     } catch (error) {
@@ -77,7 +164,7 @@ exports.getPaymentDetails = async (req, res) => {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        const payment = await Payment.findById(paymentId);
+        const payment = await Payment.findById(paymentId).populate('user', 'userName mobileNumber image').populate('order').populate('wallet');
 
         if (!payment) {
             return res.status(404).json({ status: 404, message: 'Payment record not found' });
@@ -168,7 +255,12 @@ exports.trackOrder = async (req, res) => {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        const order = await Order.findOne({ trackingNumber });
+        const order = await Order.findOne({ trackingNumber })
+            .populate('user', 'userName mobileNumber image')
+            .populate({
+                path: 'products.product',
+                select: 'productName productDescription productImage',
+            });
 
         if (!order) {
             return res.status(404).json({ status: 404, message: 'Order not found' });
