@@ -17,6 +17,7 @@ module.exports = (app) => {
 
     app.post('/api/user/subcategories', [authJwt.verifyToken], subCategoryImage.single('image'), auth.createSubCategory);
     app.get('/api/user/subcategories', [authJwt.verifyToken], auth.getAllSubCategories);
+    app.get('/api/user/forAdminSubcategories', /*[authJwt.verifyToken],*/ auth.getAllSubCategoriesforAdmin);
     app.get('/api/user/subcategories/:subcategoryId', [authJwt.verifyToken], auth.getSubCategoryById);
     app.put('/api/user/subcategories/:subcategoryId', [authJwt.verifyToken], subCategoryImage.single('image'), auth.updateSubCategory);
     app.delete('/api/user/subcategories/:subcategoryId', [authJwt.verifyToken], auth.deleteSubCategory);

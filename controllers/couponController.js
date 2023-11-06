@@ -54,6 +54,18 @@ exports.getAllCoupons = async (req, res) => {
 };
 
 
+exports.getAllCouponsForAdmin = async (req, res) => {
+    try {
+        const coupons = await Coupon.find();
+
+        return res.status(200).json({ status: 200, message: 'Coupons retrieved successfully', data: coupons });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error retrieving coupons', error: error.message });
+    }
+};
+
+
 exports.getCouponById = async (req, res) => {
     try {
         const couponId = req.params.couponId;

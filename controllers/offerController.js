@@ -62,6 +62,17 @@ exports.getAllOffers = async (req, res) => {
 };
 
 
+exports.getAllOffersForAdmin = async (req, res) => {
+    try {
+        const offers = await Offer.find();
+        return res.status(200).json({ status: 200, data: offers });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching offers', error: error.message });
+    }
+};
+
+
 exports.getOfferById = async (req, res) => {
     try {
         const offerId = req.params.offerId;

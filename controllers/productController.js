@@ -652,7 +652,37 @@ exports.getNewArrivalProducts = async (req, res) => {
 };
 
 
+exports.getNewArrivalProductsforADmin = async (req, res) => {
+    try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 90);
+
+        const newArrivalProducts = await Product.find({
+            createdAt: { $gte: thirtyDaysAgo },
+        }).sort({ createdAt: -1 });
+
+        return res.status(200).json({ status: 200, message: 'New arrival products', data: newArrivalProducts, });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error retrieving new arrival products', error: error.message, });
+    }
+};
+
+
 exports.getMostDemandedProducts = async (req, res) => {
+    try {
+        const mostDemandedProducts = await Product.find({})
+            .sort({ numOfReviews: -1 })
+
+        return res.status(200).json({ status: 200, message: 'Most demanded products', data: mostDemandedProducts });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error retrieving most demanded products', error: error.message, });
+    }
+};
+
+
+exports.getMostDemandedProductsforAdmin = async (req, res) => {
     try {
         const mostDemandedProducts = await Product.find({})
             .sort({ numOfReviews: -1 })

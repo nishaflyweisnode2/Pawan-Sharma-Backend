@@ -35,7 +35,9 @@ module.exports = (app) => {
     app.get('/api/user/product/search', [authJwt.verifyToken], auth.searchProducts);
     app.get('/api/user/category/:categoryId/subcategory/:subcategoryId/new-arrivals', [authJwt.verifyToken], auth.getNewArrivalProductsByCategoryAndSubCategory)
     app.get('/api/user/new-arrivals', [authJwt.verifyToken], auth.getNewArrivalProducts);
+    app.get('/api/user/forAdminNew-arrivals', /*[authJwt.verifyToken],*/ auth.getNewArrivalProductsforADmin);
     app.get('/api/user/most-demanded', [authJwt.verifyToken], auth.getMostDemandedProducts);
+    app.get('/api/user/forAdminMost-demanded', /*[authJwt.verifyToken],*/ auth.getMostDemandedProductsforAdmin);
     app.get("/api/user/product/all/paginateProductSearch", [authJwt.verifyToken], auth.paginateProductSearch);
 
 
