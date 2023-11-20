@@ -225,3 +225,27 @@ exports.uploadProfilePicture = async (req, res) => {
         return res.status(500).json({ message: 'Failed to upload profile picture', error: error.message });
     }
 };
+
+
+exports.deleteUser = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+
+        const { error } = userIdSchema.validate(req.params);
+        if (error) {
+            return res.status(400).json({ status: 400, error: error.details[0].message });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found' });
+        }
+
+        await User.findByIdAndDelete(userId);
+
+        return res.status(200).json({ status: 200, message: 'User deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error deleting user', error: error.message });
+    }
+};

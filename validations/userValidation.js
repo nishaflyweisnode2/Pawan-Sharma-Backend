@@ -4,6 +4,9 @@ const Joi = require('joi');
 exports.registrationSchema = Joi.object({
     userName: Joi.string().required(),
     mobileNumber: Joi.string().required(),
+    userType: Joi.string().optional(),
+    email: Joi.string().optional(),
+    password: Joi.string().optional(),
 });
 
 exports.generateOtp = () => {
@@ -23,6 +26,11 @@ exports.resendOtpSchema = Joi.object({
 exports.loginSchema = Joi.object({
     userId: Joi.string().length(24).hex().required(),
     mobileNumber: Joi.string().required(),
+});
+
+exports.adminLoginSchema = Joi.object({
+    email: Joi.string().required(),
+    password: Joi.string().required(),
 });
 
 exports.userIdSchema = Joi.object({

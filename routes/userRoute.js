@@ -21,5 +21,7 @@ module.exports = (app) => {
     app.get('/api/user/users/:userId', auth.getUserById)
     app.put('/api/user/update', [authJwt.verifyToken], auth.updateProfile);
     app.put('/api/user/upload-profile-picture', [authJwt.verifyToken], profileImage.single('image'), auth.uploadProfilePicture);
+    app.delete('/api/user/users/:userId', [authJwt.verifyToken], auth.deleteUser);
+
 
 }
