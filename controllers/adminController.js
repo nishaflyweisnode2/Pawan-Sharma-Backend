@@ -402,14 +402,14 @@ exports.updateSubCategory = async (req, res) => {
 
 exports.deleteSubCategory = async (req, res) => {
     try {
-        const subcategoryId = req.params.subcategoryId;
+        const subCategoryId = req.params.subCategoryId;
 
-        const { error } = subCategoryIdSchema.validate({ subcategoryId });
+        const { error } = subCategoryIdSchema.validate({ subCategoryId });
         if (error) {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        const deletedSubcategory = await SubCategory.findByIdAndDelete(subcategoryId);
+        const deletedSubcategory = await SubCategory.findByIdAndDelete(subCategoryId);
 
         if (!deletedSubcategory) {
             return res.status(404).json({ status: 404, message: 'Subcategory not found' });
@@ -479,8 +479,9 @@ exports.createProduct = async (req, res) => {
 
 exports.getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find();
+        const products = await Product.find().populate('categoryId');
         return res.status(200).json({ status: 200, data: products });
+
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error fetching products', error: error.message });
@@ -1699,18 +1700,37 @@ exports.getAllUserWalletBalances = async (req, res) => {
             return res.status(404).json({ status: 404, message: 'No user wallets found' });
         }
 
-        const userWalletBalances = userWallets.map(wallet => ({
-            userId: wallet.user._id,
-            username: wallet.user.userName,
-            balance: wallet.balance,
-        }));
+        const userWalletBalances = userWallets.map(wallet => {
+            if (wallet.user) {
+                return {
+                    userId: wallet.user.id,
+                    username: wallet.user.userName,
+                    balance: wallet.balance,
+                };
+            } else {
+                return {
+                    userId: null,
+                    username: 'Unknown',
+                    balance: wallet.balance,
+                };
+            }
+        });
 
-        return res.status(200).json({ status: 200, message: 'User wallet balances retrieved successfully', data: userWalletBalances });
+        return res.status(200).json({
+            status: 200,
+            message: 'User wallet balances retrieved successfully',
+            data: userWalletBalances,
+        });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ status: 500, message: 'Error retrieving user wallet balances', error: error.message });
+        return res.status(500).json({
+            status: 500,
+            message: 'Error retrieving user wallet balances',
+            error: error.message,
+        });
     }
 };
+
 
 
 exports.deleteWallet = async (req, res) => {

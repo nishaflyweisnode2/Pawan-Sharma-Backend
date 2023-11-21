@@ -179,7 +179,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pawansharma-backend/dev/1700480052233-2023-11-20T11:34:12.233Z/pawansharma-backend.zip"
+                "S3Key": "serverless/pawansharma-backend/dev/1700575472735-2023-11-21T14:04:32.735Z/pawansharma-backend.zip"
               },
               "Handler": "server.handler",
               "Runtime": "nodejs18.x",
@@ -197,14 +197,14 @@
               "AppLogGroup"
             ]
           },
-          "AppLambdaVersion6lJNwyzHbQcU3a1Uahl0h0iXrayPklu3x1ZLAdNS0": {
+          "AppLambdaVersionB5zrNRfr90HtuJCHdDUeirPtk7gUpb004pS7bfXJtaE": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "AppLambdaFunction"
               },
-              "CodeSha256": "Tj4mIplPYYecyfhsrursHlkRpdk55Mn+0q/+0UicXUY="
+              "CodeSha256": "Q1FdQu0JHhMX1MpenaOtZkW8i2qbmYwkPvsTgLU4rqw="
             }
           },
           "ApiGatewayRestApi": {
@@ -425,7 +425,7 @@
               "AppLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1700479929010": {
+          "ApiGatewayDeployment1700575383105": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -490,7 +490,7 @@
           "AppLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "AppLambdaVersion6lJNwyzHbQcU3a1Uahl0h0iXrayPklu3x1ZLAdNS0"
+              "Ref": "AppLambdaVersionB5zrNRfr90HtuJCHdDUeirPtk7gUpb004pS7bfXJtaE"
             },
             "Export": {
               "Name": "sls-pawansharma-backend-dev-AppLambdaFunctionQualifiedArn"
@@ -671,7 +671,7 @@
         "timeout": 6,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "AppLambdaVersion6lJNwyzHbQcU3a1Uahl0h0iXrayPklu3x1ZLAdNS0"
+        "versionLogicalId": "AppLambdaVersionB5zrNRfr90HtuJCHdDUeirPtk7gUpb004pS7bfXJtaE"
       }
     },
     "configValidationMode": "warn",
@@ -693,7 +693,7 @@
     "artifact": "C:\\Users\\Dev\\Downloads\\project\\Pawan-Sharma-Backend\\.serverless\\pawansharma-backend.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/pawansharma-backend/dev/1700480052233-2023-11-20T11:34:12.233Z",
+    "artifactDirectoryName": "serverless/pawansharma-backend/dev/1700575472735-2023-11-21T14:04:32.735Z",
     "artifact": "pawansharma-backend.zip"
   }
 }
