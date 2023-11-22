@@ -121,7 +121,8 @@ exports.login = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
     try {
         const users = await User.find(/*{ userType: 'User' }*/);
-        return res.status(200).json({ status: 200, data: users });
+        const count = users.length;
+        return res.status(200).json({ status: 200, data: count, users });
     } catch (error) {
         console.error(error);
         res.status(500).json({ status: 500, message: 'Error fetching users', error: error.message });
@@ -207,7 +208,10 @@ exports.createCategory = async (req, res) => {
 exports.getAllCategories = async (req, res) => {
     try {
         const categories = await Category.find();
-        return res.status(200).json({ status: 200, data: categories });
+
+        const count = categories.length;
+
+        return res.status(200).json({ status: 200, data: count, categories });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error fetching categories', error: error.message });
@@ -328,7 +332,10 @@ exports.createSubCategory = async (req, res) => {
 exports.getAllSubCategories = async (req, res) => {
     try {
         const subcategories = await SubCategory.find();
-        return res.status(200).json({ status: 200, data: subcategories });
+
+        const count = subcategories.length;
+
+        return res.status(200).json({ status: 200, data: count, subcategories });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error fetching subcategories', error: error.message });
@@ -480,7 +487,8 @@ exports.createProduct = async (req, res) => {
 exports.getAllProducts = async (req, res) => {
     try {
         const products = await Product.find().populate('categoryId');
-        return res.status(200).json({ status: 200, data: products });
+        const count = products.length;
+        return res.status(200).json({ status: 200, data: count, products });
 
     } catch (error) {
         console.error(error);
@@ -562,7 +570,7 @@ exports.updateProduct = async (req, res) => {
         };
 
         if (updatedFields.subCategoryId) {
-            const subCategories = await SubCategory.findById(updatedFields.subcategoryId)
+            const subCategories = await SubCategory.findById(updatedFields.subCategoryId)
 
             if (!subCategories) {
                 return res.status(404).json({ status: 404, message: "subCategories not found" });
@@ -573,12 +581,6 @@ exports.updateProduct = async (req, res) => {
             const categories = await Category.findById(updatedFields.categoryId)
             if (!categories) {
                 return res.status(404).json({ status: 404, message: "categories not found" });
-            }
-        }
-        if (updatedFields.subCategoryId) {
-            const subCategories = await Category.findById(updatedFields.subCategoryId)
-            if (!subCategories) {
-                return res.status(404).json({ status: 404, message: "subCategories not found" });
             }
         }
 
@@ -1347,6 +1349,34 @@ exports.getNotificationsForUser = async (req, res) => {
 };
 
 
+exports.getAllNotifications = async (req, res) => {
+    try {
+        const notifications = await Notification.find();
+
+        return res.status(200).json({ status: 200, message: 'Notifications retrieved successfully', data: notifications });
+    } catch (error) {
+        return res.status(500).json({ status: 500, message: 'Error retrieving notifications', error: error.message });
+    }
+};
+
+
+exports.deleteNotification = async (req, res) => {
+    const notificationId = req.params.id;
+
+    try {
+        const deletedNotification = await Notification.findByIdAndDelete(notificationId);
+
+        if (!deletedNotification) {
+            return res.status(404).json({ status: 404, message: 'Notification not found' });
+        }
+
+        return res.status(200).json({ status: 200, message: 'Notification deleted successfully', data: deletedNotification });
+    } catch (error) {
+        return res.status(500).json({ status: 500, message: 'Error deleting notification', error: error.message });
+    }
+};
+
+
 exports.getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find()
@@ -1362,7 +1392,10 @@ exports.getAllOrders = async (req, res) => {
                 path: 'shippingAddress',
                 select: 'fullName phone addressLine1 city state postalCode country isDefault',
             });
-        return res.status(200).json({ status: 200, message: 'Orders retrieved successfully', data: orders });
+
+        const count = orders.length;
+
+        return res.status(200).json({ status: 200, message: 'Orders retrieved successfully', data: count, orders });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error fetching orders', error: error.message });
@@ -1758,5 +1791,30 @@ exports.deleteWallet = async (req, res) => {
 };
 
 
+exports.getCounts = async (req, res) => {
+    try {
+        const userCount = await User.countDocuments();
+        const productCount = await Product.countDocuments();
+        const orderCount = await Order.countDocuments();
+        const categoryCount = await Category.countDocuments();
+        const subcategoryCount = await SubCategory.countDocuments();
+        const notificationCount = await Notification.countDocuments();
+
+        return res.status(200).json({
+            status: 200,
+            data: {
+                users: userCount,
+                products: productCount,
+                orders: orderCount,
+                categories: categoryCount,
+                subcategories: subcategoryCount,
+                notifications: notificationCount,
+            },
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching counts', error: error.message });
+    }
+};
 
 

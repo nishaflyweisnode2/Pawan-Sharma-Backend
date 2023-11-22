@@ -61,6 +61,8 @@ module.exports = (app) => {
     app.delete('/api/admin/offers/:offerId', [authJwt.isAdmin], auth.deleteOffer);
     app.post('/api/admin/notifications', [authJwt.isAdmin], auth.createNotification);
     app.get('/api/admin/notifications/user/:userId', [authJwt.isAdmin], auth.getNotificationsForUser);
+    app.get('/api/admin/notifications', [authJwt.isAdmin], auth.getAllNotifications);
+    app.delete('/api/admin/notifications/:id', [authJwt.isAdmin], auth.deleteNotification);
     app.get('/api/admin/order', [authJwt.isAdmin], auth.getAllOrders);
     app.get('/api/admin/order/:orderId', [authJwt.isAdmin], auth.getOrderById);
     app.put('/api/admin/order/:id/status', [authJwt.isAdmin], auth.updateOrderStatus);
@@ -77,5 +79,7 @@ module.exports = (app) => {
     app.get('/api/admin/:userId/wallet', [authJwt.isAdmin], auth.getWalletBalance);
     app.get('/api/admin/getAllBalances', [authJwt.isAdmin], auth.getAllUserWalletBalances);
     app.delete('/api/admin/:userId/wallet', [authJwt.isAdmin], auth.deleteWallet);
+    app.get('/api/admin/count', [authJwt.isAdmin], auth.getCounts);
+
 
 }
