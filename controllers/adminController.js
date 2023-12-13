@@ -432,6 +432,8 @@ exports.deleteSubCategory = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
     try {
+        const userId = req.user._id;
+
         const { error } = productSchema.validate(req.body);
         if (error) {
             return res.status(400).json({ status: 400, message: error.details[0].message });
@@ -440,13 +442,20 @@ exports.createProduct = async (req, res) => {
         const {
             productName,
             description,
-            price,
             categoryId,
             subCategoryId,
+            originalPrice,
+            discount,
+            discountActive,
             size,
             color,
             stock,
         } = req.body;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found', data: null });
+        }
 
         const images = req.files.map((file) => ({
             url: file.path,
@@ -462,16 +471,26 @@ exports.createProduct = async (req, res) => {
             return res.status(404).json({ status: 404, message: "categories not found" });
         }
 
+        let discountPrice = 0;
+        if (discountActive === "true") {
+            discountPrice = Number((originalPrice - (originalPrice * discount) / 100).toFixed(2));
+        }
+
+
         const product = new Product({
             productName,
             description,
             image: images,
-            price,
+            originalPrice,
+            discountPrice,
+            discount,
+            discountActive,
             categoryId,
             subCategoryId,
             size,
             color,
             stock,
+            vendorId: user._id
         });
 
         await product.save();
@@ -556,6 +575,7 @@ exports.forAdminGetProductById = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
     try {
+        const userId = req.user._id;
         const productId = req.params.productId;
 
         const { error } = updateProductSchema.validate(req.body);
@@ -564,6 +584,10 @@ exports.updateProduct = async (req, res) => {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found', data: null });
+        }
 
         let updatedFields = {
             ...req.body
@@ -584,6 +608,14 @@ exports.updateProduct = async (req, res) => {
             }
         }
 
+        if (updatedFields.discountActive === "true") {
+            if (updatedFields.originalPrice && updatedFields.discount) {
+                updatedFields.discountPrice = Number((updatedFields.originalPrice - (updatedFields.originalPrice * updatedFields.discount) / 100).toFixed(2));
+            }
+        } else {
+            updatedFields.discountPrice = 0;
+        }
+
         if (req.files && req.files.length > 0) {
             const images = req.files.map((file) => ({
                 url: file.path,
@@ -592,11 +624,12 @@ exports.updateProduct = async (req, res) => {
             updatedFields.image = images;
         }
 
-        const updatedProduct = await Product.findByIdAndUpdate(
-            productId,
+        const updatedProduct = await Product.findOneAndUpdate(
+            { _id: productId, vendorId: user._id },
             updatedFields,
             { new: true }
         );
+
 
         if (!updatedProduct) {
             return res.status(404).json({ status: 404, message: 'Product not found' });
@@ -1816,5 +1849,111 @@ exports.getCounts = async (req, res) => {
         return res.status(500).json({ status: 500, message: 'Error fetching counts', error: error.message });
     }
 };
+
+
+exports.getPendingVendors = async (req, res) => {
+    try {
+        const pendingVendors = await User.find({ userType: "Vendor", isVendorApproved: false });
+
+        return res.status(200).json({ status: 200, message: 'Pending vendors retrieved successfully', data: pendingVendors });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Failed to retrieve pending vendors', error: error.message });
+    }
+};
+
+
+exports.approveVendor = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const { isVendorVerified } = req.body;
+
+        const user = await User.findById({ userType: "Vendor", _id: userId });
+
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found' });
+        }
+
+        user.isVendorVerified = isVendorVerified;
+        await user.save();
+
+        return res.status(200).json({ status: 200, message: 'Vendor approved successfully', data: user });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Approval failed', error: error.message });
+    }
+};
+
+
+exports.getAllApprovedVendors = async (req, res) => {
+    try {
+        const approvedVendors = await User.find({ userType: "Vendor", isVendorApproved: true });
+
+        return res.status(200).json({ status: 200, message: 'Approved vendors retrieved successfully', data: approvedVendors });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Failed to retrieve approved vendors', error: error.message });
+    }
+};
+
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const { error } = updateUserSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ message: error.details[0].message });
+        }
+
+        const userId = req.params.userId;
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found' });
+        }
+
+        if (req.body.userName) {
+            user.userName = req.body.userName;
+        }
+        if (req.body.mobileNumber) {
+            user.mobileNumber = req.body.mobileNumber;
+        }
+
+        if (req.body.password) {
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
+            user.password = hashedPassword;
+        }
+
+        await user.save();
+
+        return res.status(200).json({ status: 200, message: 'User details updated successfully', data: user });
+    } catch (error) {
+        return res.status(500).json({ message: 'User details update failed', error: error.message });
+    }
+};
+
+
+exports.uploadProfilePicture = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+
+        if (!req.file) {
+            return res.status(400).json({ status: 400, error: "Image file is required" });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(userId, { image: req.file.path, }, { new: true });
+
+        if (!updatedUser) {
+            return res.status(404).json({ status: 404, message: 'User not found' });
+        }
+
+        return res.status(200).json({ status: 200, message: 'Profile picture uploaded successfully', data: updatedUser });
+    } catch (error) {
+        return res.status(500).json({ message: 'Failed to upload profile picture', error: error.message });
+    }
+};
+
+
 
 

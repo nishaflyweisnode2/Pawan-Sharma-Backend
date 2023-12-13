@@ -8,6 +8,15 @@ const SubCategory = require('../models/subCategoryModel');
 const Category = require('../models/categoryModel');
 const Coupon = require('../models/couponModel');
 const Notification = require('../models/notificationModel');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
+var multer = require("multer");
+require('dotenv').config()
+const authConfig = require("../configs/auth.config");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({ cloud_name: authConfig.cloud_name, api_key: authConfig.api_key, api_secret: authConfig.api_secret, });
 
 
 const { createOrderValidation, updateOrderStatusValidation, orderIdValidation } = require('../validations/orderValidation');
@@ -193,6 +202,29 @@ const createOrderNotification = async (userId, orderId, totalAmount) => {
 //     }
 // };
 
+const generateInvoicePDF = (order, user) => {
+    const invoicesDirectory = path.join(__dirname, 'invoices');
+
+    if (!fs.existsSync(invoicesDirectory)) {
+        fs.mkdirSync(invoicesDirectory);
+    }
+
+    const invoicePath = path.join(invoicesDirectory, `invoice-${order._id}.pdf`);
+    const doc = new PDFDocument();
+    const stream = fs.createWriteStream(invoicePath);
+
+    doc.pipe(stream);
+
+    doc.fontSize(12);
+    doc.text(`Invoice for Order ${order._id}`, { align: 'center' });
+    doc.text(`Total Amount: $${order.totalAmount.toFixed(2)}`);
+
+    doc.end();
+
+    return invoicePath;
+};
+
+
 
 exports.createOrder = async (req, res) => {
     try {
@@ -209,7 +241,7 @@ exports.createOrder = async (req, res) => {
             return res.status(404).json({ status: 404, message: 'User not found' });
         }
 
-        const cart = await Cart.findOne({ user: userId });
+        const cart = await Cart.findOne({ user: userId })/*.populate('products.product vendorId')*/;
         if (!cart) {
             return res.status(404).json({ status: 404, message: 'Cart not found' });
         }
@@ -219,8 +251,20 @@ exports.createOrder = async (req, res) => {
             return res.status(404).json({ status: 404, message: 'Shipping address not found' });
         }
 
-        const orderProducts = cart.products;
-        let totalAmount = orderProducts.reduce((total, cartProduct) => total + cartProduct.totalAmount, 0);
+        const orderProducts = cart.products.map((cartProduct) => {
+            return {
+                product: cartProduct.product,
+                vendorId: cartProduct.vendorId,
+                size: cartProduct.size,
+                quantity: cartProduct.quantity,
+                price: cartProduct.price,
+                totalAmount: cartProduct.totalAmount,
+            };
+        });
+
+        // let totalAmount = orderProducts.reduce((total, cartProduct) => total + cartProduct.totalAmount, 0);
+
+        let totalAmount = cart.totalPaidAmount;
 
         await cart.save();
 
@@ -236,7 +280,13 @@ exports.createOrder = async (req, res) => {
 
         await createOrderNotification(userId, order._id, totalAmount);
 
-        return res.status(201).json({ status: 201, message: 'Order created successfully', data: order });
+        const invoicePath = generateInvoicePDF(order)
+        
+        let x=  invoicePath.replace("C:\\Users\\Dev\\Downloads\\project\\Pawan-Sharma-Backend\\controllers\\invoices\\","");
+        return res.status(201).json({
+            status: 201, message: 'Order created successfully', data: order,
+            invoiceDownloadLink: `/invoices/${x}`,
+        });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error creating order', error: error.message });

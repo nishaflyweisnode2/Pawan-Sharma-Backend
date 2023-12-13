@@ -6,7 +6,6 @@ const mongoose = require('mongoose');
 exports.productSchema = Joi.object({
     productName: Joi.string().required(),
     description: Joi.string().required(),
-    price: Joi.number().required(),
     categoryId: Joi.string()
         .custom((value, helpers) => {
             if (!mongoose.isValidObjectId(value)) {
@@ -26,6 +25,9 @@ exports.productSchema = Joi.object({
     size: Joi.array().items(Joi.string()).required(),
     color: Joi.array().items(Joi.string()).required(),
     stock: Joi.number().required(),
+    originalPrice: Joi.number().required(),
+    discount: Joi.number().required(),
+    discountActive: Joi.boolean().required(),
 });
 
 exports.productIdSchema = Joi.object({
@@ -87,6 +89,9 @@ exports.updateProductSchema = Joi.object({
     size: Joi.array().items(Joi.string()).optional(),
     color: Joi.array().items(Joi.string()).optional(),
     stock: Joi.number().optional(),
+    originalPrice: Joi.number().optional(),
+    discount: Joi.number().optional(),
+    discountActive: Joi.boolean().optional(),
 });
 
 

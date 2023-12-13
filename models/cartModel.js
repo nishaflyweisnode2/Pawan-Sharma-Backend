@@ -5,6 +5,10 @@ const cartProductsSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product"
     },
+    vendorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    },
     size: {
         type: String
     },
@@ -47,9 +51,9 @@ const CartSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
-    // totalPaidAmount: {
-    //     type: Number
-    // }
+    totalPaidAmount: {
+        type: Number
+    }
 
 }, {
     timestamps: true

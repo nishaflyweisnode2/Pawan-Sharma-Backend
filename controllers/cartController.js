@@ -196,7 +196,15 @@ exports.addToCart = async (req, res) => {
         if (!cart) {
             cart = new Cart({
                 user: userId,
-                products: [{ product: productId, size, quantity, price: product.price, totalAmount: product.price * quantity }],
+                products: [{
+                    product: productId,
+                    size,
+                    quantity,
+                    vendorId: product.vendorId,
+                    price: product.discountActive ? product.discountPrice : product.originalPrice,
+                    totalAmount: product.discountActive ? product.discountPrice * quantity : product.originalPrice * quantity,
+
+                }],
                 shippingPrice: 0,
             });
         } else {
@@ -209,11 +217,20 @@ exports.addToCart = async (req, res) => {
                 existingProduct.quantity += quantity;
                 existingProduct.totalAmount = existingProduct.price * existingProduct.quantity;
             } else {
-                cart.products.push({ product: productId, size, quantity, price: product.price, totalAmount: product.price * quantity });
+                cart.products.push({
+                    product: productId,
+                    size,
+                    quantity,
+                    vendorId: product.vendorId,
+                    price: product.discountActive ? product.discountPrice : product.originalPrice,
+                    totalAmount: product.discountActive ? product.discountPrice * quantity : product.originalPrice * quantity,
+
+
+                });
             }
         }
 
-        let totalCartAmount;
+        let totalCartAmount = 0;
 
         if (wallet) {
             const userWallet = await UserWallet.findById(wallet);
@@ -245,9 +262,14 @@ exports.addToCart = async (req, res) => {
             await userWallet.save();
             cart.walletUsed = true;
             cart.wallet = wallet;
-            cart.products.totalAmount = totalCartAmount
+            cart.products.forEach((item) => {
+                item.totalAmount = (item.price * item.quantity);
+            });
             console.log(totalCartAmount);
         } else {
+            cart.products.forEach((item) => {
+                item.totalAmount = (item.price * item.quantity);
+            });
             totalCartAmount = cart.products.reduce((total, item) => total + item.totalAmount, 0);
         }
         console.log(totalCartAmount);
@@ -261,6 +283,8 @@ exports.addToCart = async (req, res) => {
         }
 
         console.log(totalCartAmount);
+
+        cart.totalPaidAmount = totalCartAmount + cart.shippingPrice;
 
         await cart.save();
         console.log(totalCartAmount);
@@ -394,7 +418,7 @@ exports.updateCart = async (req, res) => {
 
         cartProduct.size = size;
         cartProduct.quantity = quantity;
-        cartProduct.totalAmount = product.price * quantity;
+        cartProduct.totalAmount = product.discountActive ? product.discountPrice * quantity : product.originalPrice * quantity;
 
         const totalCartAmount = cart.products.reduce((total, item) => total + item.totalAmount, 0);
 
@@ -405,6 +429,8 @@ exports.updateCart = async (req, res) => {
         } else {
             cart.shippingPrice = shippingPrice3;
         }
+
+        cart.totalPaidAmount = totalCartAmount + cart.shippingPrice;
 
         await cart.save();
 
@@ -475,8 +501,10 @@ exports.updateCartQuantity = async (req, res) => {
             return res.status(404).json({ status: 404, message: 'Product not found in cart' });
         }
 
+        const productPrice = product.discountActive === "true" ? product.discountPrice : product.originalPrice;
+
         cartProduct.quantity = quantity;
-        cartProduct.totalAmount = product.price * quantity;
+        cartProduct.totalAmount = productPrice * quantity;
 
         const totalCartAmount = cart.products.reduce((total, item) => total + item.totalAmount, 0);
 
@@ -487,6 +515,8 @@ exports.updateCartQuantity = async (req, res) => {
         } else {
             cart.shippingPrice = shippingPrice3;
         }
+
+        cart.totalPaidAmount = totalCartAmount + cart.shippingPrice;
 
         await cart.save();
 
@@ -550,6 +580,10 @@ exports.applyCouponToCart = async (req, res) => {
             return res.status(404).json({ status: 404, message: 'Cart not found' });
         }
 
+        if (cart.coupon) {
+            return res.status(400).json({ status: 400, message: 'Coupon has already been applied to the cart' });
+        }
+
         const coupon = await Coupon.findOne({
             code: couponCode,
             startDate: { $lte: new Date() },
@@ -570,24 +604,20 @@ exports.applyCouponToCart = async (req, res) => {
         let totalAmountAfterDiscount = totalAmountBeforeDiscount;
 
         if (coupon.discountType === 'percentage') {
-            const discountPercentage = (discountAmount / 100);
+            const discountPercentage = discountAmount / 100;
             totalAmountAfterDiscount = totalAmountBeforeDiscount - (totalAmountBeforeDiscount * discountPercentage);
         } else {
             totalAmountAfterDiscount -= discountAmount;
         }
 
-        const cartProduct = cart.products.find(
-            (item) => item.product.toString()
-        );
+        const roundedTotalAmountAfterDiscount = Math.round(totalAmountAfterDiscount * 100) / 100;
 
-        if (!cartProduct) {
-            return res.status(404).json({ status: 404, message: 'Product not found in cart' });
-        }
+        cart.products.forEach((product) => {
+            product.totalAmount = Math.round(product.price * product.quantity * (roundedTotalAmountAfterDiscount / totalAmountBeforeDiscount) * 100) / 100;
+        });
 
-        cartProduct.totalAmount = totalAmountAfterDiscount
-
-        cart.totalAmount = totalAmountAfterDiscount;
-
+        cart.totalAmount = roundedTotalAmountAfterDiscount;
+        cart.totalPaidAmount = Math.round((roundedTotalAmountAfterDiscount + cart.shippingPrice) * 100) / 100;
         cart.coupon = coupon._id;
 
         await cart.save();
@@ -632,6 +662,7 @@ exports.updateCartCoupon = async (req, res) => {
         if (!coupon) {
             return res.status(404).json({ status: 404, message: 'Coupon not found or expired' });
         }
+
         const discountAmount = coupon.discountValue;
 
         const totalAmountBeforeDiscount = cart.products.reduce(
@@ -642,24 +673,20 @@ exports.updateCartCoupon = async (req, res) => {
         let totalAmountAfterDiscount = totalAmountBeforeDiscount;
 
         if (coupon.discountType === 'percentage') {
-            const discountPercentage = (discountAmount / 100);
+            const discountPercentage = discountAmount / 100;
+
+            cart.products.forEach((product) => {
+                const productDiscount = (product.price * product.quantity) * discountPercentage;
+                product.totalAmount = (product.price * product.quantity) - productDiscount;
+            });
+
             totalAmountAfterDiscount = totalAmountBeforeDiscount - (totalAmountBeforeDiscount * discountPercentage);
         } else {
             totalAmountAfterDiscount -= discountAmount;
         }
 
-        const cartProduct = cart.products.find(
-            (item) => item.product.toString()
-        );
-
-        if (!cartProduct) {
-            return res.status(404).json({ status: 404, message: 'Product not found in cart' });
-        }
-
-        cartProduct.totalAmount = totalAmountAfterDiscount
-
         cart.totalAmount = totalAmountAfterDiscount;
-
+        cart.totalPaidAmount = totalAmountAfterDiscount + cart.shippingPrice;
         cart.coupon = coupon._id;
 
         await cart.save();
@@ -711,16 +738,17 @@ exports.removeCartCoupon = async (req, res) => {
 
         if (coupon.discountType === 'percentage') {
             const discountPercentage = coupon.discountValue / 100;
-            totalAmountAfterDiscount = totalAmountBeforeDiscount / (1 - discountPercentage);
+            totalAmountAfterDiscount = totalAmountBeforeDiscount - (totalAmountBeforeDiscount * discountPercentage);
         } else {
             totalAmountAfterDiscount -= coupon.discountValue;
         }
 
         cart.products.forEach((product) => {
-            product.totalAmount = (product.price * product.quantity);
+            product.totalAmount = product.price * product.quantity;
         });
 
         cart.totalAmount = totalAmountAfterDiscount;
+        cart.totalPaidAmount = totalAmountBeforeDiscount + cart.shippingPrice;
         cart.coupon = null;
 
         await cart.save();

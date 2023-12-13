@@ -23,9 +23,13 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    isVendorVerified: {
+        type: Boolean,
+        default: false
+    },
     userType: {
         type: String,
-        enum: ["Admin", "User"], default: "User"
+        enum: ["Admin", "User", "Vendor"], default: "User"
     },
     referralCode: {
         type: String,

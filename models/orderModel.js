@@ -11,6 +11,13 @@ const orderSchema = new mongoose.Schema({
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'Product',
             },
+            vendorId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User"
+            },
+            size: {
+                type: String
+            },
             quantity: {
                 type: Number,
             },
@@ -42,6 +49,10 @@ const orderSchema = new mongoose.Schema({
         default: 'Pending',
     },
     trackingNumber: {
+        type: String,
+        unique: true,
+    },
+    pdfLink: {
         type: String,
         unique: true,
     },

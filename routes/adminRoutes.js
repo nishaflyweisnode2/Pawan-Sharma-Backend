@@ -80,6 +80,11 @@ module.exports = (app) => {
     app.get('/api/admin/getAllBalances', [authJwt.isAdmin], auth.getAllUserWalletBalances);
     app.delete('/api/admin/:userId/wallet', [authJwt.isAdmin], auth.deleteWallet);
     app.get('/api/admin/count', [authJwt.isAdmin], auth.getCounts);
+    app.get('/api/admin/pending-vendors', [authJwt.isAdmin], auth.getPendingVendors);
+    app.put('/api/admin/approve-vendor/:userId', [authJwt.isAdmin], auth.approveVendor);
+    app.get('/api/admin/approved-vendors', [authJwt.isAdmin], auth.getAllApprovedVendors);
+    app.put('/api/admin/update/:userId', [authJwt.isAdmin], auth.updateProfile);
+    app.put('/api/admin/upload-profile-picture/:userId', [authJwt.isAdmin], profileImage.single('image'), auth.uploadProfilePicture);
 
 
 }

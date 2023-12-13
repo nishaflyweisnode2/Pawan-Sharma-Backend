@@ -18,8 +18,11 @@ app.get("/", (req, res) => {
     res.send("Hello World!");
 });
 
+app.use('/invoices', express.static(path.join(__dirname, './controllers/invoices')))
+
 require('./routes/userRoute')(app);
 require('./routes/adminRoutes')(app);
+require('./routes/vendorRoute')(app);
 require('./routes/categoryRoute')(app);
 require('./routes/productRoute')(app);
 require('./routes/subCategoryRoute')(app);

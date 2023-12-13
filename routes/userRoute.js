@@ -22,6 +22,15 @@ module.exports = (app) => {
     app.put('/api/user/update', [authJwt.verifyToken], auth.updateProfile);
     app.put('/api/user/upload-profile-picture', [authJwt.verifyToken], profileImage.single('image'), auth.uploadProfilePicture);
     app.delete('/api/user/users/:userId', [authJwt.verifyToken], auth.deleteUser);
-
+    app.get('/download-invoice/:orderId', (req, res) => {
+        const orderId = req.params.orderId;
+        const invoicePath = path.join(__dirname, 'invoices', `invoice-${orderId}.pdf`);
+    
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=invoice-${orderId}.pdf`);
+    
+        const stream = fs.createReadStream(invoicePath);
+        stream.pipe(res);
+    });
 
 }
