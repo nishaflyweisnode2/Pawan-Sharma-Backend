@@ -31,6 +31,9 @@ const paymentSchema = new mongoose.Schema({
         enum: ['Pending', 'Completed', 'Failed'],
         default: 'Pending',
     },
+    pdfLink: {
+        type: String,
+    },
     createdAt: {
         type: Date,
         default: Date.now,

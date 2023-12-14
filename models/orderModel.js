@@ -54,7 +54,6 @@ const orderSchema = new mongoose.Schema({
     },
     pdfLink: {
         type: String,
-        unique: true,
     },
     createdAt: {
         type: Date,

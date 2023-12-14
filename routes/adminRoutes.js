@@ -28,6 +28,7 @@ module.exports = (app) => {
     app.post('/api/admin/subcategories', [authJwt.isAdmin], subCategoryImage.single('image'), auth.createSubCategory);
     app.get('/api/admin/subcategories', [authJwt.isAdmin], auth.getAllSubCategories);
     app.get('/api/admin/subcategories/:subcategoryId', [authJwt.isAdmin], auth.getSubCategoryById);
+    app.get('/api/admin/subcategories/categoryId/:categoryId', [authJwt.isAdmin], auth.getSubCategoryByCategory);
     app.put('/api/admin/subcategories/:subcategoryId', [authJwt.isAdmin], subCategoryImage.single('image'), auth.updateSubCategory);
     app.delete('/api/admin/subcategories/:subCategoryId', [authJwt.isAdmin], auth.deleteSubCategory);
     app.post('/api/admin/products', [authJwt.isAdmin], productImage.array('image'), auth.createProduct);

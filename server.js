@@ -18,7 +18,9 @@ app.get("/", (req, res) => {
     res.send("Hello World!");
 });
 
-app.use('/invoices', express.static(path.join(__dirname, './controllers/invoices')))
+// app.use('/invoices', express.static(path.join(__dirname, './controllers/invoices')))
+app.use('/invoices', express.static(path.join(__dirname, 'controllers', 'invoices')));
+
 
 require('./routes/userRoute')(app);
 require('./routes/adminRoutes')(app);

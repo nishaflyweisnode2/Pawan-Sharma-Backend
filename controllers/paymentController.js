@@ -9,6 +9,15 @@ const SubCategory = require('../models/subCategoryModel');
 const Category = require('../models/categoryModel');
 const Coupon = require('../models/couponModel');
 const UserWallet = require('../models/walletModel');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
+var multer = require("multer");
+require('dotenv').config()
+const authConfig = require("../configs/auth.config");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("cloudinary").v2;
+cloudinary.config({ cloud_name: authConfig.cloud_name, api_key: authConfig.api_key, api_secret: authConfig.api_secret, });
 
 
 const { createPaymentSchema, paymentIdSchema, trackIdSchema, updatePaymentStatusSchema } = require('../validations/paymentValidation');
@@ -57,6 +66,76 @@ const { createPaymentSchema, paymentIdSchema, trackIdSchema, updatePaymentStatus
 //     }
 // };
 
+const generateInvoicePDF1 = (order, user) => {
+    const invoicesDirectory = path.join(__dirname, 'invoices');
+
+    if (!fs.existsSync(invoicesDirectory)) {
+        fs.mkdirSync(invoicesDirectory);
+    }
+
+    const invoicePath = path.join(invoicesDirectory, `invoice-${order._id}.pdf`);
+    const doc = new PDFDocument();
+    const stream = fs.createWriteStream(invoicePath);
+    doc.pipe(stream);
+
+    doc.fontSize(12);
+    doc.text(`Invoice for Order ${order._id}`, { align: 'center' });
+
+    doc.text(`Invoice for User ${user._id}`, { align: 'center' });
+    doc.text(`User Name: ${user.userName}`);
+    doc.text(`User Mobile Number: ${user.mobileNumber}`);
+
+    doc.text(`Order Status: ${order.status}`);
+    doc.text(`Payment Status: ${order.paymentStatus}`);
+    doc.text(`Tracking Number: ${order.trackingNumber}`);
+    doc.text(`Total Amount: ${order.totalAmount.toFixed(2)}`);
+
+
+
+    doc.end();
+
+    return invoicePath;
+
+};
+
+const generateInvoicePDF = (order, user) => {
+    const invoicesDirectory = path.join(__dirname, 'invoices');
+
+    if (!fs.existsSync(invoicesDirectory)) {
+        fs.mkdirSync(invoicesDirectory);
+    }
+
+    const invoicePath = path.join(invoicesDirectory, `invoice-${order._id}.pdf`);
+    const doc = new PDFDocument();
+    const stream = fs.createWriteStream(invoicePath);
+    doc.pipe(stream);
+
+    doc.fontSize(18).font('Helvetica-Bold').text(`Invoice for Order ${order._id}`, { align: 'center' });
+
+    doc.moveDown().lineTo(300, doc.y).stroke("#333333").moveDown();
+
+    doc.fontSize(12).font('Helvetica').text(`Invoice for User ${user._id}`, { align: 'center' });
+    doc.moveDown(1);
+    doc.text(`User Name: ${user.userName}`);
+    doc.text(`User Mobile Number: ${user.mobileNumber}`);
+
+    doc.moveDown(2);
+
+    doc.text(`Order Status: ${order.status}`);
+    doc.text(`Payment Status: ${order.paymentStatus}`);
+    doc.text(`Tracking Number: ${order.trackingNumber}`);
+    doc.text(`Total Amount: $${order.totalAmount.toFixed(2)}`);
+
+    doc.moveDown(1);
+
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke("#333333").moveDown();
+
+    doc.end();
+
+    return invoicePath;
+};
+
+
 
 exports.createPayment = async (req, res) => {
     try {
@@ -67,9 +146,9 @@ exports.createPayment = async (req, res) => {
 
         const { orderId, paymentMethod, walletId } = req.body;
         const userId = req.user.id;
-        console.log("userId", userId);
 
         const user = await User.findById(userId);
+
         if (!user) {
             return res.status(404).json({ status: 404, message: 'User not found' });
         }
@@ -127,6 +206,28 @@ exports.createPayment = async (req, res) => {
         order.status = 'Processing';
 
         await order.save();
+        const BASE_PATH = "C:\\Users\\Dev\\Downloads\\project\\Pawan-Sharma-Backend\\controllers\\invoices\\";
+
+        const invoicePath = generateInvoicePDF(order, user);
+        console.log("invoicePath", invoicePath);
+
+        // let x = invoicePath.replace(BASE_PATH, "");
+
+        const x = path.basename(invoicePath);
+        const result = await cloudinary.uploader.upload(invoicePath, {
+            folder: 'invoices',
+            public_id: x,
+            resource_type: 'raw',
+        });
+
+        const cloudinaryPdfLink = result.secure_url;
+        payment.pdfLink = cloudinaryPdfLink;
+
+        // payment.pdfLink = `/invoices/${x}`;
+
+        await payment.save();
+
+        fs.unlinkSync(invoicePath);
 
         return res.status(201).json({
             status: 201,
@@ -134,6 +235,7 @@ exports.createPayment = async (req, res) => {
             data: {
                 payment,
                 walletBalance,
+                invoiceDownloadLink: `/invoices/${x}`,
             },
         });
     } catch (error) {

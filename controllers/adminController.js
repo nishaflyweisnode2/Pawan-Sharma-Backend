@@ -331,7 +331,7 @@ exports.createSubCategory = async (req, res) => {
 
 exports.getAllSubCategories = async (req, res) => {
     try {
-        const subcategories = await SubCategory.find();
+        const subcategories = await SubCategory.find().populate('category');
 
         const count = subcategories.length;
 
@@ -352,7 +352,7 @@ exports.getSubCategoryById = async (req, res) => {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        const subcategory = await SubCategory.findById(subcategoryId);
+        const subcategory = await SubCategory.findById(subcategoryId).populate('category');
 
         if (!subcategory) {
             return res.status(404).json({ status: 404, message: 'Subcategory not found' });
@@ -362,6 +362,20 @@ exports.getSubCategoryById = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error fetching subcategory by ID', error: error.message });
+    }
+};
+
+
+exports.getSubCategoryByCategory = async (req, res) => {
+    try {
+        const categoryId = req.params.categoryId;
+
+        const subCategories = await SubCategory.find({ categoryId }).populate('category');
+
+        res.status(200).json({ status: 200, data: subCategories });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error fetching products by category', error: error.message });
     }
 };
 
