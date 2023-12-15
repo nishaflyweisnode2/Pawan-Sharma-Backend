@@ -48,10 +48,20 @@ exports.register = async (req, res) => {
             return res.status(400).json({ message: error.details[0].message });
         }
 
-        const existingUser = await User.findOne({ $or: [{ mobileNumber }] });
-        if (existingUser) {
-            return res.status(400).json({ status: 400, message: 'User already exists with this mobile' });
+        const existingUserByMobile = await User.findOne({ mobileNumber });
+        if (existingUserByMobile) {
+            return res.status(400).json({ status: 400, message: 'User already exists with this mobile number' });
         }
+
+        const existingUserByEmail = await User.findOne({ email });
+        if (existingUserByEmail) {
+            return res.status(400).json({ status: 400, message: 'User already exists with this email' });
+        }
+
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+
         const referId = Math.floor(100000 + Math.random() * 900000);
         const referralCode = referId;
 
@@ -62,7 +72,7 @@ exports.register = async (req, res) => {
             referralCode,
             userType: "Vendor",
             email,
-            password,
+            password: hashedPassword,
             isVendorVerified: false,
         });
 
@@ -93,10 +103,17 @@ exports.login = async (req, res) => {
             return res.status(400).json({ status: 400, error: error.details[0].message });
         }
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email, userType: "Vendor" });
 
         if (!user) {
             return res.status(401).json({ status: 401, message: 'User not found' });
+        }
+
+        // Compare the provided password with the hashed password in the database
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({ status: 401, message: 'Invalid password' });
         }
 
         if (!user.isVendorVerified) {
@@ -114,7 +131,6 @@ exports.login = async (req, res) => {
         return res.status(500).json({ status: 500, message: 'Login failed', error: error.message });
     }
 };
-
 
 
 exports.getProfile = async (req, res) => {
@@ -202,6 +218,20 @@ exports.getSubCategoryById = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error fetching subcategory by ID', error: error.message });
+    }
+};
+
+
+exports.getSubCategoryByCategory = async (req, res) => {
+    try {
+        const categoryId = req.params.categoryId;
+
+        const subCategories = await SubCategory.find({ categoryId }).populate('category');
+
+        res.status(200).json({ status: 200, data: subCategories });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error fetching products by category', error: error.message });
     }
 };
 
@@ -1018,9 +1048,14 @@ exports.deletePayment = async (req, res) => {
 
 exports.getCounts = async (req, res) => {
     try {
+        const vendorId = req.params.vendorId;
+
         const userCount = await User.countDocuments();
-        const productCount = await Product.countDocuments();
-        const orderCount = await Order.countDocuments();
+
+        const productCount = await Product.countDocuments({ vendorId });
+
+        const orderCount = await Order.countDocuments({ 'products.vendorId': vendorId });
+
         const categoryCount = await Category.countDocuments();
         const subcategoryCount = await SubCategory.countDocuments();
         const notificationCount = await Notification.countDocuments();

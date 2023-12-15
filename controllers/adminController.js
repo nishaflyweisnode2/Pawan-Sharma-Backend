@@ -44,17 +44,25 @@ const { registrationSchema, generateOtp, otpSchema, loginSchema, adminLoginSchem
 
 exports.register = async (req, res) => {
     try {
-        const { userName, mobileNumber, userType, email, password } = req.body;
-
+        const { userName, mobileNumber, email, password } = req.body;
         const { error } = registrationSchema.validate(req.body);
         if (error) {
             return res.status(400).json({ message: error.details[0].message });
         }
 
-        const existingUser = await User.findOne({ $or: [{ mobileNumber }] });
-        if (existingUser) {
-            return res.status(400).json({ status: 400, message: 'User already exists with this mobile' });
+        const existingUserByMobile = await User.findOne({ mobileNumber });
+        if (existingUserByMobile) {
+            return res.status(400).json({ status: 400, message: 'User already exists with this mobile number' });
         }
+
+        const existingUserByEmail = await User.findOne({ email });
+        if (existingUserByEmail) {
+            return res.status(400).json({ status: 400, message: 'User already exists with this email' });
+        }
+
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
         const referId = Math.floor(100000 + Math.random() * 900000);
         const referralCode = referId;
 
@@ -63,9 +71,9 @@ exports.register = async (req, res) => {
             mobileNumber,
             otp: generateOtp(),
             referralCode,
-            userType,
+            userType: "Admin",
             email,
-            password
+            password: hashedPassword
         });
 
         await user.save();
@@ -88,8 +96,6 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     try {
-        const userId = req.params.userId
-        console.log("userId", userId);
         const { email, password } = req.body;
 
         const { error } = adminLoginSchema.validate({ email, password });
@@ -97,20 +103,24 @@ exports.login = async (req, res) => {
             return res.status(400).json({ status: 400, error: error.details[0].message });
         }
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email, userType: "Admin" });
 
         if (!user) {
             return res.status(401).json({ status: 401, message: 'User not found' });
         }
 
-        user.isVerified = true;
+        const isPasswordValid = await bcrypt.compare(password, user.password);
 
-        // user.otp = generateOtp()
+        if (!isPasswordValid) {
+            return res.status(401).json({ status: 401, message: 'Invalid password' });
+        }
+
+        user.isVerified = true;
         await user.save();
 
-        const token = jwt.sign({ _id: user._id }, process.env.SECRET, { expiresIn: process.env.ACCESS_TOKEN_TIME, });
+        const token = jwt.sign({ _id: user._id }, process.env.SECRET, { expiresIn: process.env.ACCESS_TOKEN_TIME });
 
-        return res.status(200).json({ status: 200, message: 'Login successful', token: token, data: user, });
+        return res.status(200).json({ status: 200, message: 'Login successful', token, data: user });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Login failed', error: error.message });
@@ -1867,7 +1877,7 @@ exports.getCounts = async (req, res) => {
 
 exports.getPendingVendors = async (req, res) => {
     try {
-        const pendingVendors = await User.find({ userType: "Vendor", isVendorApproved: false });
+        const pendingVendors = await User.find({ userType: "Vendor", isVendorVerified: false });
 
         return res.status(200).json({ status: 200, message: 'Pending vendors retrieved successfully', data: pendingVendors });
     } catch (error) {

@@ -22,6 +22,7 @@ module.exports = (app) => {
     app.get('/api/vendor/categories/:categoryId', [authJwt.isVendor], auth.getCategoryById);
     app.get('/api/vendor/subcategories', [authJwt.isVendor], auth.getAllSubCategories);
     app.get('/api/vendor/subcategories/:subCategoryId', [authJwt.isVendor], auth.getSubCategoryById);
+    app.get('/api/vendor/subcategories/categoryId/:categoryId', [authJwt.isVendor], auth.getSubCategoryByCategory);
     app.post('/api/vendor/products', [authJwt.isVendor], productImage.array('image'), auth.createProduct);
     app.get('/api/vendor/products', [authJwt.isVendor], auth.getAllProducts);
     app.get('/api/vendor/products/:productId', [authJwt.isVendor], auth.getProductById);
@@ -47,7 +48,7 @@ module.exports = (app) => {
     app.get('/api/vendor/payment/:paymentId', [authJwt.isVendor], auth.getPaymentDetails);
     app.put('/api/vendor/payment/:paymentId', [authJwt.isVendor], auth.updatePaymentStatus);
     app.delete('/api/vendor/payment/:paymentId', [authJwt.isVendor], auth.deletePayment);
-    app.get('/api/vendor/count', [authJwt.isVendor], auth.getCounts);
+    app.get('/api/vendor/count/:vendorId', [authJwt.isVendor], auth.getCounts);
 
 
 
