@@ -28,6 +28,7 @@ exports.productSchema = Joi.object({
     originalPrice: Joi.number().required(),
     discount: Joi.number().required(),
     discountActive: Joi.boolean().required(),
+    status: Joi.boolean().optional(),
 });
 
 exports.productIdSchema = Joi.object({
@@ -92,6 +93,7 @@ exports.updateProductSchema = Joi.object({
     originalPrice: Joi.number().optional(),
     discount: Joi.number().optional(),
     discountActive: Joi.boolean().optional(),
+    status: Joi.boolean().optional(),
 });
 
 

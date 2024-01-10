@@ -1,6 +1,14 @@
 const mongoose = require('mongoose');
 
 const offerSchema = new mongoose.Schema({
+    category: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
+    },
+    subcategory: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Subcategory',
+    },
     product: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product',

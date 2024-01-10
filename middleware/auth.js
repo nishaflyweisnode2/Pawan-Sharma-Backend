@@ -110,7 +110,7 @@ const isVendor = (req, res, next) => {
 
             if (user.userType !== "Vendor") {
                 return res.status(403).send({
-                    message: "Access prohibited. Admin role is required!",
+                    message: "Access prohibited. Vendor role is required!",
                 });
             }
 

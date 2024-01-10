@@ -13,6 +13,7 @@ exports.subCategorySchema = Joi.object({
         })
         .required(),
     name: Joi.string().required(),
+    status: Joi.string().optional(),
 });
 
 
@@ -46,6 +47,7 @@ exports.updateSubCategorySchema = Joi.object({
         })
         .optional(),
     name: Joi.string().optional(),
+    status: Joi.string().optional(),
 });
 
 

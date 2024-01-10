@@ -82,6 +82,14 @@ const productSchema = new mongoose.Schema({
     stock: {
         type: Number,
     },
+    status: {
+        type: Boolean,
+        default: false,
+    },
+    isProductVerified: {
+        type: Boolean,
+        default: false
+    },
 
 }, { timestamps: true });
 

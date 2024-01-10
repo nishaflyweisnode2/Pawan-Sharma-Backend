@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 
 exports.categorySchema = Joi.object({
     name: Joi.string().required(),
+    status: Joi.string().optional(),
 });
 
 
@@ -30,4 +31,5 @@ exports.updateCategorySchema = Joi.object({
         })
         .required(),
     name: Joi.string().optional(),
+    status: Joi.string().optional(),
 });

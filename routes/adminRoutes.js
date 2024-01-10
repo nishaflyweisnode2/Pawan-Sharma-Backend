@@ -19,6 +19,8 @@ module.exports = (app) => {
     app.post('/api/admin/login', auth.login)
     app.get('/api/admin/users', [authJwt.isAdmin], auth.getAllUsers);
     app.get('/api/admin/users/:userId', [authJwt.isAdmin], auth.getUserById)
+    app.put('/api/admin/update', [authJwt.isAdmin], auth.updateProfile);
+    app.put('/api/admin/upload-profile-picture', [authJwt.isAdmin], profileImage.single('image'), auth.uploadProfilePicture);
     app.delete('/api/admin/users/:userId', [authJwt.isAdmin], auth.deleteUser);
     app.post('/api/admin/categories', [authJwt.isAdmin], categoryImage.single('image'), auth.createCategory);
     app.get('/api/admin/categories', [authJwt.isAdmin], auth.getAllCategories);
@@ -86,6 +88,8 @@ module.exports = (app) => {
     app.get('/api/admin/approved-vendors', [authJwt.isAdmin], auth.getAllApprovedVendors);
     app.put('/api/admin/update/:userId', [authJwt.isAdmin], auth.updateProfile);
     app.put('/api/admin/upload-profile-picture/:userId', [authJwt.isAdmin], profileImage.single('image'), auth.uploadProfilePicture);
-
+    app.get('/api/admin/product/pending-vendors', [authJwt.isAdmin], auth.getPendingVendorsProduct);
+    app.put('/api/admin/product/approve-vendor/:productId', [authJwt.isAdmin], auth.approveVendorProduct);
+    app.get('/api/admin/product/approved-vendors', [authJwt.isAdmin], auth.getAllApprovedVendorsProducts);
 
 }

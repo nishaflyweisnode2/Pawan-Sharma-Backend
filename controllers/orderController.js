@@ -281,8 +281,8 @@ exports.createOrder = async (req, res) => {
         await createOrderNotification(userId, order._id, totalAmount);
 
         const invoicePath = generateInvoicePDF(order)
-        
-        let x=  invoicePath.replace("C:\\Users\\Dev\\Downloads\\project\\Pawan-Sharma-Backend\\controllers\\invoices\\","");
+
+        let x = invoicePath.replace("C:\\Users\\Dev\\Downloads\\project\\Pawan-Sharma-Backend\\controllers\\invoices\\", "");
         return res.status(201).json({
             status: 201, message: 'Order created successfully', data: order,
             invoiceDownloadLink: `/invoices/${x}`,

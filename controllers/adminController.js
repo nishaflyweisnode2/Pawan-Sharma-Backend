@@ -16,6 +16,8 @@ const Cart = require('../models/cartModel');
 const Referral = require('../models/refferModel');
 const Wallet = require('../models/walletModel');
 const UserWallet = require('../models/walletModel');
+const { isValidObjectId } = require('mongoose');
+
 
 const { walletBalanceSchema, updateWalletBalanceSchema } = require('../validations/walletValidation');
 
@@ -194,7 +196,7 @@ exports.createCategory = async (req, res) => {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        const { name } = req.body;
+        const { name, status } = req.body;
 
         if (!req.file) {
             return res.status(400).json({ status: 400, error: "Image file is required" });
@@ -202,6 +204,7 @@ exports.createCategory = async (req, res) => {
 
         const category = new Category({
             name,
+            status,
             image: req.file.path,
         });
 
@@ -255,18 +258,28 @@ exports.getCategoryById = async (req, res) => {
 exports.updateCategory = async (req, res) => {
     try {
         const categoryId = req.params.categoryId;
-        const { name } = req.body;
+        const { name, status } = req.body;
 
-        const { error } = updateCategorySchema.validate({ categoryId, name });
+        const { error } = updateCategorySchema.validate({ categoryId, name, status });
         if (error) {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        if (!req.file) {
-            return res.status(400).json({ status: 400, error: "Image file is required" });
+        const updateFields = {};
+
+        if (name) {
+            updateFields.name = name;
         }
 
-        const category = await Category.findByIdAndUpdate(categoryId, { name, image: req.file.path, }, { new: true });
+        if (status !== undefined) {
+            updateFields.status = status;
+        }
+
+        if (req.file) {
+            updateFields.image = req.file.path;
+        }
+
+        const category = await Category.findByIdAndUpdate(categoryId, updateFields, { new: true });
 
         if (!category) {
             return res.status(404).json({ status: 404, message: 'Category not found' });
@@ -305,9 +318,9 @@ exports.deleteCategory = async (req, res) => {
 
 exports.createSubCategory = async (req, res) => {
     try {
-        const { category, name } = req.body;
+        const { category, name, status } = req.body;
 
-        const { error } = subCategorySchema.validate({ category, name });
+        const { error } = subCategorySchema.validate({ category, name, status });
         if (error) {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
@@ -326,6 +339,7 @@ exports.createSubCategory = async (req, res) => {
         const subcategory = new SubCategory({
             category,
             name,
+            status,
             image: req.file.path,
         });
 
@@ -393,31 +407,36 @@ exports.getSubCategoryByCategory = async (req, res) => {
 exports.updateSubCategory = async (req, res) => {
     try {
         const subcategoryId = req.params.subcategoryId;
-        const { category, name } = req.body
+        const { category, name, status } = req.body;
 
-        const { error } = updateSubCategorySchema.validate({ subcategoryId, category, name });
+        const { error } = updateSubCategorySchema.validate({ subcategoryId, category, name, status });
         if (error) {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        if (!req.file) {
-            return res.status(400).json({ status: 400, error: "Image file is required" });
-        }
-
-        const subCategories = await SubCategory.findById(subcategoryId)
-
-        if (!subCategories) {
-            return res.status(404).json({ status: 404, message: "subCategories not found" });
-        }
+        const updateFields = {};
 
         if (category) {
-            const categories = await Category.findById(req.body.category)
-            if (!categories) {
-                return res.status(404).json({ status: 404, message: "categories not found" });
+            const foundCategory = await Category.findById(category);
+            if (!foundCategory) {
+                return res.status(404).json({ status: 404, message: 'Category not found' });
             }
+            updateFields.category = category;
         }
 
-        const updatedSubcategory = await SubCategory.findByIdAndUpdate(subcategoryId, { ...req.body, image: req.file.path, }, { new: true });
+        if (name) {
+            updateFields.name = name;
+        }
+
+        if (status !== undefined) {
+            updateFields.status = status;
+        }
+
+        if (req.file) {
+            updateFields.image = req.file.path;
+        }
+
+        const updatedSubcategory = await SubCategory.findByIdAndUpdate(subcategoryId, updateFields, { new: true });
 
         if (!updatedSubcategory) {
             return res.status(404).json({ status: 404, message: 'Subcategory not found' });
@@ -474,6 +493,7 @@ exports.createProduct = async (req, res) => {
             size,
             color,
             stock,
+            status,
         } = req.body;
 
         const user = await User.findById(userId);
@@ -514,6 +534,7 @@ exports.createProduct = async (req, res) => {
             size,
             color,
             stock,
+            status,
             vendorId: user._id
         });
 
@@ -1207,7 +1228,7 @@ exports.deleteCoupon = async (req, res) => {
 };
 
 
-exports.createOffer = async (req, res) => {
+exports.createOffer1 = async (req, res) => {
     try {
         const { error } = createOfferSchema.validate(req.body);
         if (error) {
@@ -1241,6 +1262,61 @@ exports.createOffer = async (req, res) => {
             discountPercentage,
             validFrom,
             validTo,
+        });
+
+        await offer.save();
+
+        return res.status(201).json({ status: 201, message: 'Offer created successfully', data: offer });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error creating offer', error: error.message });
+    }
+};
+
+exports.createOffer = async (req, res) => {
+    try {
+        const { error } = createOfferSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ status: 400, message: error.details[0].message });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ status: 400, error: "Image file is required" });
+        }
+
+        const { product, title, description, code, discountPercentage, validFrom, validTo, category, subCategory } = req.body;
+
+        if (category && subCategory) {
+            const checkCategory = await Category.findById(category);
+            const checkSubCategory = await SubCategory.findById(subCategory);
+            const checkProduct = await Product.findById(product);
+
+            if (!checkCategory || !checkSubCategory || !checkProduct) {
+                return res.status(404).json({ status: 404, message: 'Category Subcategory or Product not found' });
+            }
+        }
+
+        const checkTitle = await Offer.findOne({ title });
+        if (checkTitle) {
+            return res.status(404).json({ status: 404, message: 'Title exists with this name' });
+        }
+
+        const checkCode = await Offer.findOne({ code });
+        if (checkCode) {
+            return res.status(404).json({ status: 404, message: 'Code exists with this name' });
+        }
+
+        const offer = new Offer({
+            product,
+            title,
+            image: req.file.path,
+            description,
+            code,
+            discountPercentage,
+            validFrom,
+            validTo,
+            category,
+            subCategory,
         });
 
         await offer.save();
@@ -1292,7 +1368,7 @@ exports.getOfferById = async (req, res) => {
 };
 
 
-exports.updateOffer = async (req, res) => {
+exports.updateOffer1 = async (req, res) => {
     try {
         const offerId = req.params.offerId;
         const updateFields = {};
@@ -1357,6 +1433,100 @@ exports.updateOffer = async (req, res) => {
 };
 
 
+exports.updateOffer = async (req, res) => {
+    try {
+        const offerId = req.params.offerId;
+
+        const { error } = updateOfferSchema.validate({
+            offerId,
+            product: req.body.product,
+            title: req.body.title,
+            description: req.body.description,
+            code: req.body.code,
+            discountPercentage: req.body.discountPercentage,
+            validFrom: req.body.validFrom,
+            validTo: req.body.validTo,
+        });
+
+        if (error) {
+            return res.status(400).json({ status: 400, message: error.details[0].message });
+        }
+
+        const existingOffer = await Offer.findById(offerId);
+        if (!existingOffer) {
+            return res.status(404).json({ status: 404, message: 'Offer not found' });
+        }
+
+        if (req.body.product) {
+            if (!isValidObjectId(req.body.product)) {
+                return res.status(400).json({ status: 400, message: 'Invalid product ID format' });
+            }
+            const checkProduct = await Product.findById(req.body.product);
+            if (!checkProduct) {
+                return res.status(404).json({ status: 404, message: 'Product not found' });
+            }
+        }
+
+        if (req.body.category) {
+            if (!isValidObjectId(req.body.category)) {
+                return res.status(400).json({ status: 400, message: 'Invalid Category ID format' });
+            }
+
+            const checkCategory = await Category.findById(req.body.category);
+            if (!checkCategory) {
+                return res.status(404).json({ status: 404, message: 'Category not found' });
+            }
+        }
+
+        if (req.body.subCategory) {
+            if (!isValidObjectId(req.body.subCategory)) {
+                return res.status(400).json({ status: 400, message: 'Invalid Sub Category ID format' });
+            }
+            const checkSubCategory = await SubCategory.findById(req.body.subCategory);
+            if (!checkSubCategory) {
+                return res.status(404).json({ status: 404, message: 'Sub Category not found' });
+            }
+        }
+
+        if (req.body.title && req.body.title !== existingOffer.title) {
+            const checkOfferByTitle = await Offer.findOne({ title: req.body.title });
+            if (checkOfferByTitle) {
+                return res.status(404).json({ status: 404, message: 'Title already exists for another offer' });
+            }
+        }
+
+        let updatedImagePath = existingOffer.image;
+        if (req.file) {
+            updatedImagePath = req.file.path;
+        }
+
+        const updateFields = {
+            product: req.body.product,
+            title: req.body.title,
+            description: req.body.description,
+            code: req.body.code,
+            discountPercentage: req.body.discountPercentage,
+            validFrom: req.body.validFrom,
+            validTo: req.body.validTo,
+            image: updatedImagePath,
+        };
+
+        Object.keys(updateFields).forEach((key) => updateFields[key] === undefined && delete updateFields[key]);
+
+        if (Object.keys(updateFields).length === 0) {
+            return res.status(400).json({ status: 400, message: "No valid fields to update" });
+        }
+
+        const updatedOffer = await Offer.findByIdAndUpdate(offerId, updateFields, { new: true });
+
+        return res.status(200).json({ status: 200, message: 'Offer updated successfully', data: updatedOffer });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error updating offer', error: error.message });
+    }
+};
+
+
 exports.deleteOffer = async (req, res) => {
     try {
         const offerId = req.params.offerId;
@@ -1376,9 +1546,13 @@ exports.deleteOffer = async (req, res) => {
 
 exports.createNotification = async (req, res) => {
     try {
-        const { recipient, content } = req.body;
+        const { recipients, content } = req.body;
 
-        const notification = new Notification({ recipient, content });
+        if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
+            return res.status(400).json({ status: 400, message: 'Invalid recipients provided' });
+        }
+
+        const notification = new Notification({ recipients, content });
         await notification.save();
 
         return res.status(201).json({ status: 201, message: 'Notification created successfully', data: notification });
@@ -1386,6 +1560,7 @@ exports.createNotification = async (req, res) => {
         return res.status(500).json({ status: 500, message: 'Error creating notification', error: error.message });
     }
 };
+
 
 
 exports.getNotificationsForUser = async (req, res) => {
@@ -1911,7 +2086,7 @@ exports.approveVendor = async (req, res) => {
 
 exports.getAllApprovedVendors = async (req, res) => {
     try {
-        const approvedVendors = await User.find({ userType: "Vendor", isVendorApproved: true });
+        const approvedVendors = await User.find({ userType: "Vendor", isVendorVerified: true });
 
         return res.status(200).json({ status: 200, message: 'Approved vendors retrieved successfully', data: approvedVendors });
     } catch (error) {
@@ -1978,6 +2153,51 @@ exports.uploadProfilePicture = async (req, res) => {
     }
 };
 
+
+exports.getPendingVendorsProduct = async (req, res) => {
+    try {
+        const pendingProducts = await Product.find({ isProductVerified: false }).populate('vendorId');
+
+        return res.status(200).json({ status: 200, message: 'Pending vendors Products retrieved successfully', data: pendingProducts });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Failed to retrieve pending vendors Products', error: error.message });
+    }
+};
+
+
+exports.approveVendorProduct = async (req, res) => {
+    try {
+        const productId = req.params.productId;
+        const { isProductVerified } = req.body;
+
+        const products = await Product.findById({ _id: productId }).populate('vendorId');
+
+        if (!products) {
+            return res.status(404).json({ status: 404, message: 'products not found' });
+        }
+
+        products.isProductVerified = isProductVerified;
+        await products.save();
+
+        return res.status(200).json({ status: 200, message: 'Vendor products approved successfully', data: products });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Approval failed', error: error.message });
+    }
+};
+
+
+exports.getAllApprovedVendorsProducts = async (req, res) => {
+    try {
+        const approvedVendors = await Product.find({ isProductVerified: true });
+
+        return res.status(200).json({ status: 200, message: 'Approved vendors Products retrieved successfully', data: approvedVendors });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Failed to retrieve approved vendors', error: error.message });
+    }
+};
 
 
 

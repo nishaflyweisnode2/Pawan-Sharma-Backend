@@ -10,6 +10,10 @@ const subCategorySchema = new mongoose.Schema({
     image: {
         type: String,
     },
+    status: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const SubCategory = mongoose.model('SubCategory', subCategorySchema);

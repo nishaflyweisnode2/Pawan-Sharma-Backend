@@ -11,7 +11,23 @@ exports.createOfferSchema = Joi.object({
             }
             return value;
         })
-        .required(),
+        .optional(),
+    category: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .optional(),
+    subCategory: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .optional(),
     title: Joi.string().required(),
     description: Joi.string().required(),
     code: Joi.string().trim().required(),
@@ -31,6 +47,22 @@ exports.updateOfferSchema = Joi.object({
         })
         .required(),
     product: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .optional(),
+    category: Joi.string()
+        .custom((value, helpers) => {
+            if (!mongoose.isValidObjectId(value)) {
+                return helpers.error('any.invalid');
+            }
+            return value;
+        })
+        .optional(),
+    subCategory: Joi.string()
         .custom((value, helpers) => {
             if (!mongoose.isValidObjectId(value)) {
                 return helpers.error('any.invalid');

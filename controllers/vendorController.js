@@ -256,6 +256,7 @@ exports.createProduct = async (req, res) => {
             size,
             color,
             stock,
+            status,
         } = req.body;
 
         const user = await User.findById(userId);
@@ -296,6 +297,7 @@ exports.createProduct = async (req, res) => {
             size,
             color,
             stock,
+            status,
             vendorId: user._id
         });
 
@@ -1076,4 +1078,62 @@ exports.getCounts = async (req, res) => {
         return res.status(500).json({ status: 500, message: 'Error fetching counts', error: error.message });
     }
 };
+
+exports.getPendingProductForApproval = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found', data: null });
+        }
+
+        const pendingProducts = await Product.find({ vendorId: userId, isProductVerified: false }).populate('vendorId');
+
+        return res.status(200).json({ status: 200, message: 'Pending vendors Products retrieved successfully', data: pendingProducts });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Failed to retrieve pending vendors Products', error: error.message });
+    }
+};
+
+
+exports.getAllApprovedProducts = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found', data: null });
+        }
+
+        const approvedVendors = await Product.find({ vendorId: userId, isProductVerified: true });
+
+        return res.status(200).json({ status: 200, message: 'Approved vendors Products retrieved successfully', data: approvedVendors });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Failed to retrieve approved vendors', error: error.message });
+    }
+};
+
+
+exports.getNotificationsForUser = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found' });
+        }
+
+        const notifications = await Notification.find({ recipients: { $in: [userId] } }).populate('recipients');
+
+        return res.status(200).json({ status: 200, message: 'Notifications retrieved successfully', data: notifications });
+    } catch (error) {
+        return res.status(500).json({ status: 500, message: 'Error retrieving notifications', error: error.message });
+    }
+};
+
+
+
 
