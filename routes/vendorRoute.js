@@ -51,7 +51,8 @@ module.exports = (app) => {
     app.get('/api/vendor/count/:vendorId', [authJwt.isVendor], auth.getCounts);
     app.get('/api/vendor/product/pending-vendors', [authJwt.isVendor], auth.getPendingProductForApproval);
     app.get('/api/vendor/product/approved-vendors', [authJwt.isVendor], auth.getAllApprovedProducts);
-    app.get('/api/vedor/notifications/vendor', [authJwt.isVendor], auth.getNotificationsForUser);
+    app.get('/api/vendor/notifications/vendor', [authJwt.isVendor], auth.getNotificationsForUser);
+    app.put('/api/vendor/notifications/:notificationId', [authJwt.isVendor], auth.markNotificationAsRead);
 
 
 }

@@ -7,6 +7,7 @@ exports.registrationSchema = Joi.object({
     userType: Joi.string().optional(),
     email: Joi.string().optional(),
     password: Joi.string().optional(),
+    referralCode: Joi.string().optional(),
 });
 
 exports.generateOtp = () => {

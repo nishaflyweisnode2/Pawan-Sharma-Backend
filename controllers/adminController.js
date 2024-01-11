@@ -17,6 +17,10 @@ const Referral = require('../models/refferModel');
 const Wallet = require('../models/walletModel');
 const UserWallet = require('../models/walletModel');
 const { isValidObjectId } = require('mongoose');
+const PaymentGateway = require('../models/paymentGateWayModel');
+const ShiprocketCredentials = require('../models/shiprocketCredentialsModel');
+const ExcelJS = require('exceljs');
+
 
 
 const { walletBalanceSchema, updateWalletBalanceSchema } = require('../validations/walletValidation');
@@ -1546,18 +1550,50 @@ exports.deleteOffer = async (req, res) => {
 
 exports.createNotification = async (req, res) => {
     try {
-        const { recipients, content } = req.body;
-
-        if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
-            return res.status(400).json({ status: 400, message: 'Invalid recipients provided' });
+        const admin = await User.findById(req.user._id);
+        if (!admin) {
+            return res.status(404).json({ status: 404, message: "Admin not found" });
         }
 
-        const notification = new Notification({ recipients, content });
-        await notification.save();
+        const createNotification = async (userId) => {
+            const notificationData = {
+                userId,
+                title: req.body.title,
+                content: req.body.content,
+            };
+            return await Notification.create(notificationData);
+        };
 
-        return res.status(201).json({ status: 201, message: 'Notification created successfully', data: notification });
+        if (req.body.total === "ALL") {
+            const userData = await User.find({ userType: req.body.sendTo });
+            if (userData.length === 0) {
+                return res.status(404).json({ status: 404, message: "Users not found" });
+            }
+
+            for (const user of userData) {
+                await createNotification(user._id);
+            }
+
+            await createNotification(admin._id);
+
+            return res.status(200).json({ status: 200, message: "Notifications sent successfully to all users." });
+        }
+
+        if (req.body.total === "SINGLE") {
+            const user = await User.findById(req.body._id);
+            if (!user || user.userType !== req.body.sendTo) {
+                return res.status(404).json({ status: 404, message: "User not found or invalid user type" });
+            }
+
+            const notificationData = await createNotification(user._id);
+
+            return res.status(200).json({ status: 200, message: "Notification sent successfully.", data: notificationData });
+        }
+
+        return res.status(400).json({ status: 400, message: "Invalid 'total' value" });
     } catch (error) {
-        return res.status(500).json({ status: 500, message: 'Error creating notification', error: error.message });
+        console.error(error);
+        return res.status(500).json({ status: 500, message: "Server error", data: {} });
     }
 };
 
@@ -1617,8 +1653,12 @@ exports.getAllOrders = async (req, res) => {
                 select: 'productName price image',
             })
             .populate({
+                path: 'products.vendorId',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
                 path: 'user',
-                select: 'userName mobileNumber',
+                select: 'userName mobileNumber image',
             })
             .populate({
                 path: 'shippingAddress',
@@ -1633,6 +1673,103 @@ exports.getAllOrders = async (req, res) => {
         return res.status(500).json({ status: 500, message: 'Error fetching orders', error: error.message });
     }
 };
+
+
+exports.getOrdersByUserId = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+
+        const orders = await Order.find({ user: userId })
+            .populate({
+                path: 'products.product',
+                select: 'productName price image',
+            })
+            .populate({
+                path: 'products.vendorId',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'user',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'shippingAddress',
+                select: 'fullName phone addressLine1 city state postalCode country isDefault',
+            });
+
+        const count = orders.length;
+
+        return res.status(200).json({ status: 200, message: 'Orders retrieved successfully', data: count, orders });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching orders', error: error.message });
+    }
+};
+
+
+exports.getOrdersByVendorId = async (req, res) => {
+    try {
+        const vendorId = req.params.vendorId;
+
+        const orders = await Order.find({ 'products.vendorId': vendorId })
+            .populate({
+                path: 'products.product',
+                select: 'productName price image',
+            })
+            .populate({
+                path: 'products.vendorId',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'user',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'shippingAddress',
+                select: 'fullName phone addressLine1 city state postalCode country isDefault',
+            });
+
+        const count = orders.length;
+
+        return res.status(200).json({ status: 200, message: 'Orders retrieved successfully', data: count, orders });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching orders', error: error.message });
+    }
+};
+
+
+exports.getOrdersByProductId = async (req, res) => {
+    try {
+        const productId = req.params.productId;
+
+        const orders = await Order.find({ 'products.product': productId })
+            .populate({
+                path: 'products.product',
+                select: 'productName price image',
+            })
+            .populate({
+                path: 'products.vendorId',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'user',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'shippingAddress',
+                select: 'fullName phone addressLine1 city state postalCode country isDefault',
+            });
+
+        const count = orders.length;
+
+        return res.status(200).json({ status: 200, message: 'Orders retrieved successfully', data: count, orders });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching orders', error: error.message });
+    }
+};
+
 
 
 exports.getOrderById = async (req, res) => {
@@ -1708,6 +1845,19 @@ exports.getPayments = async (req, res) => {
 };
 
 
+exports.getPaymentsByOrderId = async (req, res) => {
+    try {
+        const orderId = req.params.orderId
+        const payments = await Payment.find({ order: orderId }).populate('user', 'userName mobileNumber image').populate('order').populate('wallet');
+
+        return res.status(200).json({ status: 200, message: 'Payments retrieved successfully', data: payments });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error retrieving payments', error: error.message });
+    }
+};
+
+
 exports.getPaymentDetails = async (req, res) => {
     try {
         const paymentId = req.params.paymentId;
@@ -1727,6 +1877,56 @@ exports.getPaymentDetails = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error retrieving payment details', error: error.message });
+    }
+};
+
+
+exports.getTransctionDetails = async (req, res) => {
+    try {
+        const { user, paymentMethod, status, startDate, endDate } = req.query;
+
+        const filters = {};
+        if (user) filters.user = user;
+        if (paymentMethod) filters.paymentMethod = paymentMethod;
+        if (status) filters.status = status;
+        if (startDate || endDate) {
+            filters.createdAt = {};
+            if (startDate) filters.createdAt.$gte = new Date(startDate);
+            if (endDate) filters.createdAt.$lte = new Date(endDate);
+        }
+
+        const transactions = await Payment.find(filters)
+            .populate({
+                path: 'user',
+                select: 'userName mobileNumber',
+            })
+            .populate({
+                path: 'order',
+                populate: {
+                    path: 'products.product',
+                    model: 'Product',
+                    select: 'productName price image',
+                },
+            })
+            .populate({
+                // path: 'order',
+                path: 'order.products.vendorId',
+                model: 'User',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'order.shippingAddress',
+                model: 'Address',
+                select: 'fullName phone addressLine1 city state postalCode country isDefault',
+            })
+            .populate({
+                path: 'wallet',
+            });
+
+        res.status(200).json({ status: 200, message: 'Transactions retrieved successfully', data: transactions });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error fetching transactions', error: error.message });
     }
 };
 
@@ -2200,4 +2400,417 @@ exports.getAllApprovedVendorsProducts = async (req, res) => {
 };
 
 
+exports.addPaymentGatewayCredentials = async (req, res) => {
+    try {
+        const { name, apiKey, secretKey, liveSandbox, isActive, } = req.body;
 
+        const existingGateway = await PaymentGateway.findOne({ name });
+
+        if (existingGateway) {
+            return res.status(400).json({ status: 400, message: 'Gateway with the given name already exists' });
+        }
+
+        const paymentGateway = new PaymentGateway({
+            name,
+            apiKey,
+            secretKey,
+            isActive,
+            liveSandbox
+        });
+
+        await paymentGateway.save();
+
+        return res.status(201).json({ status: 201, message: 'Payment gateway credentials added successfully', data: paymentGateway });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error adding payment gateway credentials', error: error.message });
+    }
+};
+
+
+exports.getAllPaymentGateway = async (req, res) => {
+    try {
+
+        const paymentGateway = await PaymentGateway.find();
+
+        if (!paymentGateway) {
+            return res.status(404).json({ status: 404, message: 'Payment gateway not found' });
+        }
+
+        return res.status(200).json({ status: 200, message: 'Payment gateway retrieved successfully', data: paymentGateway });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error retrieving payment gateway', error: error.message });
+    }
+};
+
+
+
+exports.updatePaymentGatewayCredentials = async (req, res) => {
+    try {
+        const paymentGatewayId = req.params.paymentGatewayId;
+
+        const { name, apiKey, secretKey, liveSandbox, isActive } = req.body;
+
+        const paymentGateway = await PaymentGateway.findOne({ paymentGatewayId });
+
+        if (!paymentGateway) {
+            return res.status(404).json({ status: 404, message: 'Payment gateway not found' });
+        }
+
+        paymentGateway.name = name;
+        paymentGateway.liveSandbox = liveSandbox;
+        paymentGateway.apiKey = apiKey;
+        paymentGateway.secretKey = secretKey;
+        paymentGateway.isActive = isActive;
+
+        await paymentGateway.save();
+
+        return res.status(200).json({ status: 200, message: 'Payment gateway credentials updated successfully', data: paymentGateway });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error updating payment gateway credentials', error: error.message });
+    }
+};
+
+
+exports.getPaymentGatewayById = async (req, res) => {
+    try {
+        const paymentGatewayId = req.params.paymentGatewayId;
+
+        const paymentGateway = await PaymentGateway.findById(paymentGatewayId);
+
+        if (!paymentGateway) {
+            return res.status(404).json({ status: 404, message: 'Payment gateway not found' });
+        }
+
+        return res.status(200).json({ status: 200, message: 'Payment gateway retrieved successfully', data: paymentGateway });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error retrieving payment gateway', error: error.message });
+    }
+};
+
+
+exports.deletePaymentGatewayById = async (req, res) => {
+    try {
+        const paymentGatewayId = req.params.paymentGatewayId;
+
+        const paymentGateway = await PaymentGateway.findById(paymentGatewayId);
+
+        if (!paymentGateway) {
+            return res.status(404).json({ status: 404, message: 'Payment gateway not found' });
+        }
+
+        await PaymentGateway.findByIdAndDelete(paymentGatewayId);
+
+        return res.status(200).json({ status: 200, message: 'Payment gateway deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error deleting payment gateway', error: error.message });
+    }
+};
+
+
+
+exports.addShiprocketCredentialsCredentials = async (req, res) => {
+    try {
+        const { name, apiKey, secretKey, liveSandbox, isActive, } = req.body;
+
+        const existingGateway = await ShiprocketCredentials.findOne({ name });
+
+        if (existingGateway) {
+            return res.status(400).json({ status: 400, message: 'Gateway with the given name already exists' });
+        }
+
+        const paymentGateway = new ShiprocketCredentials({
+            name,
+            apiKey,
+            secretKey,
+            isActive,
+            liveSandbox
+        });
+
+        await paymentGateway.save();
+
+        return res.status(201).json({ status: 201, message: 'Shiprocket credentials added successfully', data: paymentGateway });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error adding Shiprocket credentials', error: error.message });
+    }
+};
+
+
+exports.getAllShiprocketCredentials = async (req, res) => {
+    try {
+
+        const paymentGateway = await ShiprocketCredentials.find();
+
+        if (!paymentGateway) {
+            return res.status(404).json({ status: 404, message: 'Payment gateway not found' });
+        }
+
+        return res.status(200).json({ status: 200, message: 'Shiprocket gateway retrieved successfully', data: paymentGateway });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error retrieving Shiprocket gateway', error: error.message });
+    }
+};
+
+
+exports.updateShiprocketCredentials = async (req, res) => {
+    try {
+        const paymentGatewayId = req.params.paymentGatewayId;
+
+        const { name, apiKey, secretKey, liveSandbox, isActive } = req.body;
+
+        const paymentGateway = await ShiprocketCredentials.findOne({ paymentGatewayId });
+
+        if (!paymentGateway) {
+            return res.status(404).json({ status: 404, message: 'Shiprocket gateway not found' });
+        }
+
+        paymentGateway.liveSandbox = liveSandbox;
+        paymentGateway.name = name;
+        paymentGateway.apiKey = apiKey;
+        paymentGateway.secretKey = secretKey;
+        paymentGateway.isActive = isActive;
+
+        await paymentGateway.save();
+
+        return res.status(200).json({ status: 200, message: 'Shiprocket gateway credentials updated successfully', data: paymentGateway });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error updating Shiprocket gateway credentials', error: error.message });
+    }
+};
+
+
+exports.getShiprocketCredentialsById = async (req, res) => {
+    try {
+        const paymentGatewayId = req.params.paymentGatewayId;
+
+        const paymentGateway = await ShiprocketCredentials.findById(paymentGatewayId);
+
+        if (!paymentGateway) {
+            return res.status(404).json({ status: 404, message: 'Shiprocket gateway not found' });
+        }
+
+        return res.status(200).json({ status: 200, message: 'Shiprocket gateway retrieved successfully', data: paymentGateway });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error retrieving Shiprocket gateway', error: error.message });
+    }
+};
+
+
+exports.deleteShiprocketCredentialsById = async (req, res) => {
+    try {
+        const paymentGatewayId = req.params.paymentGatewayId;
+
+        const paymentGateway = await ShiprocketCredentials.findById(paymentGatewayId);
+
+        if (!paymentGateway) {
+            return res.status(404).json({ status: 404, message: 'Shiprocket gateway not found' });
+        }
+
+        await PaymentGateway.findByIdAndDelete(paymentGatewayId);
+
+        return res.status(200).json({ status: 200, message: 'Shiprocket gateway deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error deleting Shiprocket gateway', error: error.message });
+    }
+};
+
+
+exports.exportCustomersToExcel = async (req, res) => {
+    try {
+        const userType = req.params.userType
+        let customers
+        if (userType) {
+            customers = await User.find({ userType });
+        } else {
+            customers = await User.find();
+
+        }
+
+        if (!customers || customers.length === 0) {
+            return res.status(404).json({ status: 404, message: 'No customers found' });
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Customers');
+
+        worksheet.addRow(['Customer ID', 'Name', 'Email', 'Phone', 'Password', 'Image', "UserType"]);
+
+        customers.forEach(customer => {
+            worksheet.addRow([
+                customer._id.toString(),
+                customer.userName,
+                customer.email,
+                customer.mobileNumber,
+                customer.password,
+                customer.image,
+                customer.userType,
+            ]);
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=customers.xlsx');
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error('Error exporting customers to Excel:', error);
+        return res.status(500).json({ status: 500, message: 'Error exporting customers to Excel', error: error.message });
+    }
+};
+
+
+
+exports.exportProductToExcel = async (req, res) => {
+    try {
+        const products = await Product.find();
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Products');
+
+        worksheet.addRow(['Product ID', 'Vendor ID', 'Product Name', 'Description', 'Original Price', 'Discount Price', 'Discount', 'Discount Active', 'Category ID', 'SubCategory ID', 'Rating', 'Num of Reviews', 'Size', 'Color', 'Stock', 'Status', 'Is Product Verified', 'Created At', 'Updated At']);
+
+        products.forEach(product => {
+            worksheet.addRow([
+                product._id.toString(),
+                product.vendorId.toString(),
+                product.productName,
+                product.description,
+                product.originalPrice,
+                product.discountPrice,
+                product.discount,
+                product.discountActive,
+                product.categoryId.toString(),
+                product.subCategoryId.toString(),
+                product.rating,
+                product.numOfReviews,
+                product.size.join(', '),
+                product.color.join(', '),
+                product.stock,
+                product.status,
+                product.isProductVerified,
+                product.createdAt,
+                product.updatedAt,
+            ]);
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=products.xlsx');
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error exporting products to Excel', error: error.message });
+    }
+};
+
+
+
+exports.exportOrderToExcel = async (req, res) => {
+    try {
+        const orders = await Order.find().populate('user').populate('products.product').populate('shippingAddress');
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Orders');
+
+        worksheet.addRow(['Order ID', 'User ID', 'User Name', 'Total Amount', 'Status', 'Shipping Address', 'Payment Method', 'Payment Status', 'Tracking Number', 'Created At', 'Updated At']);
+
+        orders.forEach(order => {
+            worksheet.addRow([
+                order._id.toString(),
+                order.user._id.toString(),
+                order.user.userName,
+                order.totalAmount,
+                order.status,
+                order.shippingAddress ? order.shippingAddress.toString() : '',
+                order.paymentMethod,
+                order.paymentStatus,
+                order.trackingNumber,
+                order.createdAt,
+                order.updatedAt,
+            ]);
+
+            worksheet.addRow(['', '', '', '', '', '', 'Product Name', 'Vendor ID', 'Size', 'Quantity', 'Price']);
+
+            order.products.forEach(product => {
+                worksheet.addRow([
+                    '', '', '', '', '', '',
+                    product.product.productName,
+                    product.vendorId.toString(),
+                    product.size,
+                    product.quantity,
+                    product.price,
+                ]);
+            });
+
+            worksheet.addRow([]);
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=orders.xlsx');
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: 500, message: 'Error exporting orders to Excel', error: error.message });
+    }
+};
+
+
+
+exports.exportPaymentToExcel = async (req, res) => {
+    try {
+        const payments = await Payment.find();
+        if (payments.length === 0) {
+            return res.status(404).json({ message: 'No payments found.' });
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Payments');
+
+        worksheet.columns = [
+            { header: 'ID', key: '_id', width: 24 },
+            { header: 'User ID', key: 'user', width: 24 },
+            { header: 'Order ID', key: 'order', width: 24 },
+            { header: 'Wallet ID', key: 'wallet', width: 24 },
+            { header: 'Wallet Used', key: 'walletUsed', width: 15 },
+            { header: 'Amount', key: 'amount', width: 15 },
+            { header: 'Payment Method', key: 'paymentMethod', width: 20 },
+            { header: 'Status', key: 'status', width: 15 },
+            { header: 'PDF Link', key: 'pdfLink', width: 40 },
+            { header: 'Created At', key: 'createdAt', width: 20 },
+        ];
+
+        payments.forEach((payment) => {
+            worksheet.addRow({
+                _id: payment._id.toString(),
+                user: payment.user.toString(),
+                order: payment.order.toString(),
+                wallet: (payment.wallet && payment.wallet.toString()) || '',
+                walletUsed: payment.walletUsed,
+                amount: payment.amount,
+                paymentMethod: payment.paymentMethod,
+                status: payment.status,
+                pdfLink: payment.pdfLink,
+                createdAt: payment.createdAt.toISOString(),
+            });
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=payments.xlsx');
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error exporting payments to Excel', error: error.message });
+    }
+};

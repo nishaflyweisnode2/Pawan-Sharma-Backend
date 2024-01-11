@@ -67,10 +67,15 @@ module.exports = (app) => {
     app.get('/api/admin/notifications', [authJwt.isAdmin], auth.getAllNotifications);
     app.delete('/api/admin/notifications/:id', [authJwt.isAdmin], auth.deleteNotification);
     app.get('/api/admin/order', [authJwt.isAdmin], auth.getAllOrders);
+    app.get('/api/admin/user/order/:userId', [authJwt.isAdmin], auth.getOrdersByUserId);
+    app.get('/api/admin/vendor/order/:vendorId', [authJwt.isAdmin], auth.getOrdersByVendorId);
+    app.get('/api/admin/product/order/:productId', [authJwt.isAdmin], auth.getOrdersByProductId);
     app.get('/api/admin/order/:orderId', [authJwt.isAdmin], auth.getOrderById);
     app.put('/api/admin/order/:id/status', [authJwt.isAdmin], auth.updateOrderStatus);
     app.get('/api/admin/payment', [authJwt.isAdmin], auth.getPayments);
+    app.get('/api/admin/payment/:orderId', [authJwt.isAdmin], auth.getPaymentsByOrderId);
     app.get('/api/admin/payment/:paymentId', [authJwt.isAdmin], auth.getPaymentDetails);
+    app.get('/api/admin/transactions', [authJwt.isAdmin], auth.getTransctionDetails)
     app.put('/api/admin/payment/:paymentId', [authJwt.isAdmin], auth.updatePaymentStatus);
     app.delete('/api/admin/payment/:paymentId', [authJwt.isAdmin], auth.deletePayment);
     app.put('/api/admin/referral/:referralId', [authJwt.isAdmin], auth.updateReferralStatus);
@@ -91,5 +96,21 @@ module.exports = (app) => {
     app.get('/api/admin/product/pending-vendors', [authJwt.isAdmin], auth.getPendingVendorsProduct);
     app.put('/api/admin/product/approve-vendor/:productId', [authJwt.isAdmin], auth.approveVendorProduct);
     app.get('/api/admin/product/approved-vendors', [authJwt.isAdmin], auth.getAllApprovedVendorsProducts);
+    app.post('/api/admin/paymentgateways', [authJwt.isAdmin], auth.addPaymentGatewayCredentials);
+    app.get('/api/admin/paymentgateways', [authJwt.isAdmin], auth.getAllPaymentGateway);
+    app.get('/api/admin/paymentgateways/:paymentGatewayId', [authJwt.isAdmin], auth.getPaymentGatewayById);
+    app.put('/api/admin/paymentgateways/:paymentGatewayId', [authJwt.isAdmin], auth.updatePaymentGatewayCredentials);
+    app.delete('/api/admin/paymentgateways/:paymentGatewayId', [authJwt.isAdmin], auth.deletePaymentGatewayById);
+    app.post('/api/admin/ShiprocketCredentials', [authJwt.isAdmin], auth.addShiprocketCredentialsCredentials);
+    app.get('/api/admin/ShiprocketCredentials', [authJwt.isAdmin], auth.getAllShiprocketCredentials);
+    app.get('/api/admin/ShiprocketCredentials/:paymentGatewayId', [authJwt.isAdmin], auth.getShiprocketCredentialsById);
+    app.put('/api/admin/ShiprocketCredentials/:paymentGatewayId', [authJwt.isAdmin], auth.updateShiprocketCredentials);
+    app.delete('/api/admin/ShiprocketCredentials/:paymentGatewayId', [authJwt.isAdmin], auth.deleteShiprocketCredentialsById);
+    app.get('/api/admin/export/customers/:userType', /*[authJwt.isAdmin],*/ auth.exportCustomersToExcel);
+    app.get('/api/admin/export/customers', /*[authJwt.isAdmin],*/ auth.exportCustomersToExcel);
+    app.get('/api/admin/export/product', /*[authJwt.isAdmin],*/ auth.exportProductToExcel);
+    app.get('/api/admin/export/order', /*[authJwt.isAdmin],*/ auth.exportOrderToExcel);
+    app.get('/api/admin/export/payment', /*[authJwt.isAdmin],*/ auth.exportPaymentToExcel);
+
 
 }

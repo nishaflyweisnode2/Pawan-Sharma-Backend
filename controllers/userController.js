@@ -2,14 +2,41 @@ const User = require('../models/userModel');
 const Notification = require('../models/notificationModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require("bcryptjs");
+const Referral = require('../models/refferModel');
+
 
 const { registrationSchema, generateOtp, otpSchema, loginSchema, resendOtpSchema, userIdSchema, updateUserSchema, updateUserProfileSchema } = require('../validations/userValidation');
 
 
+const createReferral = async ({ referredUserId, referralCode }) => {
+    try {
+        const referrerUser = await User.findOne({ referralCode });
+
+        if (!referrerUser) {
+            return { success: false, message: 'Invalid referral code' };
+        }
+
+        const referral = new Referral({
+            referrer: referrerUser._id,
+            referredUser: referredUserId,
+            referralCode,
+        });
+
+        await referral.save();
+
+        return { success: true, referral };
+    } catch (error) {
+        console.error(error);
+        return { success: false, message: 'Error creating referral', error: error.message };
+    }
+};
 
 exports.register = async (req, res) => {
+    let user;
+    let referredByUser;
+
     try {
-        const { userName, mobileNumber, } = req.body;
+        const { userName, mobileNumber, referralCode } = req.body;
 
         const { error } = registrationSchema.validate(req.body);
         if (error) {
@@ -20,17 +47,35 @@ exports.register = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({ status: 400, message: 'User already exists with this mobile' });
         }
-        const referId = Math.floor(100000 + Math.random() * 900000);
-        const referralCode = referId;
 
-        const user = new User({
+        const referId = Math.floor(100000 + Math.random() * 900000);
+
+        user = new User({
             userName,
             mobileNumber,
             otp: generateOtp(),
-            referralCode,
+            referralCode: referId,
+            referredBy: null, // Set initially to null
         });
 
+        if (referralCode) {
+            referredByUser = await User.findOne({ referralCode });
+            if (!referredByUser) {
+                return res.status(404).json({ status: 404, message: 'Referring user not found' });
+            }
+
+            user.referredBy = referredByUser._id; // Set referredBy if there's a referral code
+        }
+
         await user.save();
+
+        if (referralCode) {
+            const referralResult = await createReferral({ referredUserId: user._id, referralCode });
+
+            if (!referralResult.success) {
+                return res.status(400).json({ status: 400, message: referralResult.message });
+            }
+        }
 
         const welcomeMessage = `Welcome, ${user.userName}! Thank you for registering.`;
         const welcomeNotification = new Notification({
@@ -40,9 +85,9 @@ exports.register = async (req, res) => {
         });
         await welcomeNotification.save();
 
-
         return res.status(201).json({ status: 201, message: 'User registered successfully', data: user });
     } catch (error) {
+        console.log(error);
         return res.status(500).json({ message: 'Registration failed', error: error.message });
     }
 };
