@@ -111,6 +111,12 @@ module.exports = (app) => {
     app.get('/api/admin/export/product', /*[authJwt.isAdmin],*/ auth.exportProductToExcel);
     app.get('/api/admin/export/order', /*[authJwt.isAdmin],*/ auth.exportOrderToExcel);
     app.get('/api/admin/export/payment', /*[authJwt.isAdmin],*/ auth.exportPaymentToExcel);
+    app.get('/api/admin/refund-orders', [authJwt.isAdmin], auth.getRefundOrders);
+    app.put('/api/admin/refund-orders/:orderId', [authJwt.isAdmin], auth.updateRefundStatus);
+    app.get('/api/admin/tickets', [authJwt.isAdmin], auth.getTickets);
+    app.put('/api/admin/tickets/:ticketId/reply',  [authJwt.isAdmin], auth.replyToTicket);
+    app.put('/api/admin/tickets/:ticketId/close', [authJwt.isAdmin], auth.closeTicket);
+    
 
 
 }

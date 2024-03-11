@@ -32,5 +32,8 @@ module.exports = (app) => {
         const stream = fs.createReadStream(invoicePath);
         stream.pipe(res);
     });
+    app.post('/api/user/tickets', [authJwt.verifyToken], auth.createTicket);
+    app.get('/api/user/tickets', [authJwt.verifyToken], auth.getTickets);
+
 
 }

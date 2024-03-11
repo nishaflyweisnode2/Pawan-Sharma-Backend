@@ -28,7 +28,6 @@ const orderSchema = new mongoose.Schema({
     ],
     totalAmount: {
         type: Number,
-        required: true,
     },
     status: {
         type: String,
@@ -51,6 +50,21 @@ const orderSchema = new mongoose.Schema({
     trackingNumber: {
         type: String,
         unique: true,
+    },
+    refundStatus: {
+        type: String,
+        enum: ['Pending', 'Processing', 'Completed', 'Failed'],
+        default: 'Pending',
+    },
+    isRefund: {
+        type: Boolean,
+        default: false,
+    },
+    refundReason: {
+        type: String,
+    },
+    refundDescription: {
+        type: String,
     },
     createdAt: {
         type: Date,

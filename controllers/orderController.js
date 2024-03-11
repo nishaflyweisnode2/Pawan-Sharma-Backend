@@ -8,6 +8,8 @@ const SubCategory = require('../models/subCategoryModel');
 const Category = require('../models/categoryModel');
 const Coupon = require('../models/couponModel');
 const Notification = require('../models/notificationModel');
+const UserWallet = require('../models/walletModel');
+
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
@@ -399,5 +401,90 @@ exports.getOrderHistory = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: 'Error fetching order history', error: error.message });
+    }
+};
+
+
+exports.createReturnRequest = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { reason, description } = req.body;
+        const userId = req.user.id;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found' });
+        }
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ status: 404, message: 'Order not found' });
+        }
+
+        if (order.status === 'Shipped' && order.paymentStatus === 'Completed') {
+
+            order.reason = reason,
+                order.description = description,
+                order.status = 'Pending',
+                order.isRefund = true,
+
+                await order.save();
+
+            return res.status(200).json({
+                status: 200,
+                message: 'Return/Refund request added to the order successfully',
+                data: order,
+            });
+        } else {
+            return res.status(400).json({ status: 400, message: 'Order is not eligible for return/refund' });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: 500,
+            message: 'Error creating return/refund request',
+            error: error.message,
+        });
+    }
+};
+
+
+exports.getRefundOrders = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        console.log(userId);
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 404, message: 'User not found' });
+        }
+
+        const refundOrders = await Order.find({ isRefund: true, user: userId }).populate({
+            path: 'products.product',
+            select: 'productName price image',
+        })
+            .populate({
+                path: 'user',
+                select: 'userName mobileNumber',
+            })
+            .populate({
+                path: 'shippingAddress',
+                select: 'fullName phone addressLine1 city state postalCode country isDefault',
+            });;
+
+        const existingWallet = await UserWallet.findOne({ user: userId }).populate('user');
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Refund orders status retrieved successfully',
+            data: refundOrders,
+            walletBalance: existingWallet || null,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: 500,
+            message: 'Error retrieving refund orders',
+            error: error.message,
+        });
     }
 };

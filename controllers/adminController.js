@@ -20,6 +20,7 @@ const { isValidObjectId } = require('mongoose');
 const PaymentGateway = require('../models/paymentGateWayModel');
 const ShiprocketCredentials = require('../models/shiprocketCredentialsModel');
 const ExcelJS = require('exceljs');
+const Ticket = require('../models/ticketModel');
 
 
 
@@ -1335,7 +1336,7 @@ exports.createOffer = async (req, res) => {
 
 exports.getAllOffers = async (req, res) => {
     try {
-        const offers = await Offer.find();
+        const offers = await Offer.find().populate('product category subcategory');
         return res.status(200).json({ status: 200, data: offers });
     } catch (error) {
         console.error(error);
@@ -1835,8 +1836,15 @@ exports.updateOrderStatus = async (req, res) => {
 
 exports.getPayments = async (req, res) => {
     try {
-        const payments = await Payment.find().populate('user', 'userName mobileNumber image').populate('order').populate('wallet');
-
+        const payments = await Payment.find().populate('user', 'userName mobileNumber image').populate('order').populate('wallet').populate({
+            path: 'order',
+            populate: [
+                { path: 'user', select: 'userName mobileNumber' },
+                { path: 'products.product', populate: { path: 'vendorId' } },
+                { path: 'products', populate: { path: 'vendorId' } }
+            ]
+        })
+        console.log("1");
         return res.status(200).json({ status: 200, message: 'Payments retrieved successfully', data: payments });
     } catch (error) {
         console.error(error);
@@ -1848,7 +1856,14 @@ exports.getPayments = async (req, res) => {
 exports.getPaymentsByOrderId = async (req, res) => {
     try {
         const orderId = req.params.orderId
-        const payments = await Payment.find({ order: orderId }).populate('user', 'userName mobileNumber image').populate('order').populate('wallet');
+        const payments = await Payment.find({ order: orderId }).populate('user', 'userName mobileNumber image').populate('order').populate('wallet').populate({
+            path: 'order',
+            populate: [
+                { path: 'user', select: 'userName mobileNumber' },
+                { path: 'products.product', populate: { path: 'vendorId' } },
+                { path: 'products', populate: { path: 'vendorId' } }
+            ]
+        })
 
         return res.status(200).json({ status: 200, message: 'Payments retrieved successfully', data: payments });
     } catch (error) {
@@ -1867,8 +1882,14 @@ exports.getPaymentDetails = async (req, res) => {
             return res.status(400).json({ status: 400, message: error.details[0].message });
         }
 
-        const payment = await Payment.findById(paymentId).populate('user', 'userName mobileNumber image').populate('order').populate('wallet');
-
+        const payment = await Payment.findById(paymentId).populate('user', 'userName mobileNumber image').populate('order').populate('wallet').populate({
+            path: 'order',
+            populate: [
+                { path: 'user', select: 'userName mobileNumber' },
+                { path: 'products.product', populate: { path: 'vendorId' } },
+                { path: 'products', populate: { path: 'vendorId' } }
+            ]
+        })
         if (!payment) {
             return res.status(404).json({ status: 404, message: 'Payment record not found' });
         }
@@ -2318,6 +2339,10 @@ exports.updateProfile = async (req, res) => {
             user.mobileNumber = req.body.mobileNumber;
         }
 
+        if (req.body.email) {
+            user.email = req.body.email;
+        }
+
         if (req.body.password) {
             const saltRounds = 10;
             const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
@@ -2607,14 +2632,16 @@ exports.getShiprocketCredentialsById = async (req, res) => {
 exports.deleteShiprocketCredentialsById = async (req, res) => {
     try {
         const paymentGatewayId = req.params.paymentGatewayId;
-
+        console.log("paymentGatewayId", paymentGatewayId);
         const paymentGateway = await ShiprocketCredentials.findById(paymentGatewayId);
+        console.log("paymentGateway", paymentGateway);
 
         if (!paymentGateway) {
             return res.status(404).json({ status: 404, message: 'Shiprocket gateway not found' });
         }
 
-        await PaymentGateway.findByIdAndDelete(paymentGatewayId);
+        await ShiprocketCredentials.findByIdAndDelete(paymentGatewayId);
+        console.log("paymentGatewayId", paymentGatewayId);
 
         return res.status(200).json({ status: 200, message: 'Shiprocket gateway deleted successfully' });
     } catch (error) {
@@ -2812,5 +2839,173 @@ exports.exportPaymentToExcel = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error exporting payments to Excel', error: error.message });
+    }
+};
+
+
+exports.getRefundOrders = async (req, res) => {
+    try {
+        const refundOrders = await Order.find({ isRefund: true });
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Refund orders retrieved successfully',
+            data: refundOrders,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: 500,
+            message: 'Error retrieving refund orders',
+            error: error.message,
+        });
+    }
+};
+
+
+exports.updateRefundStatus = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { refundStatus } = req.body;
+
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({
+                status: 404,
+                message: 'Order not found',
+            });
+        }
+
+        const previousRefundStatus = order.refundStatus;
+
+        order.refundStatus = refundStatus;
+
+        await order.save();
+
+        if (refundStatus === 'Completed' && previousRefundStatus !== 'Completed') {
+            let wallet = await User.findById(order.user);
+            console.log("wallet", wallet);
+
+            const existingWallet = await UserWallet.findOne({ user: order.user });
+            if (existingWallet) {
+                existingWallet.balance += order.totalAmount;
+                await existingWallet.save();
+            } else {
+                let userWallet = new UserWallet({ user: order.user, balance: order.totalAmount });
+                await userWallet.save();
+            }
+
+            const notification = new Notification({
+                userId: order.user,
+                title: 'Refund for order #' + order.trackingNumber,
+                content: 'Total Amount Refund Amount Is Added On Your Wallet: ' + order.totalAmount,
+            });
+            await notification.save();
+        }
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Refund status updated successfully',
+            data: order,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: 500,
+            message: 'Error updating refund status',
+            error: error.message,
+        });
+    }
+};
+
+
+exports.getTickets = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const tickets = await Ticket.find().populate('user', 'userName mobileNumber image').populate('order').populate({
+            path: 'order',
+            populate: [
+                { path: 'user', select: 'userName mobileNumber' },
+                { path: 'products.product', populate: { path: 'vendorId' } },
+                { path: 'products', populate: { path: 'vendorId' } }
+            ]
+        });
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Tickets retrieved successfully',
+            data: tickets,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: 500,
+            message: 'Error retrieving tickets',
+            error: error.message,
+        });
+    }
+};
+
+
+exports.replyToTicket = async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const { message } = req.body;
+        const adminId = req.user.id;
+
+        const ticket = await Ticket.findById(ticketId);
+        if (!ticket) {
+            return res.status(404).json({ status: 404, message: 'Ticket not found' });
+        }
+
+        ticket.replies.push({
+            user: adminId,
+            message,
+        });
+
+        await ticket.save();
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Reply added to the ticket successfully',
+            data: ticket,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: 500,
+            message: 'Error replying to the ticket',
+            error: error.message,
+        });
+    }
+};
+
+
+exports.closeTicket = async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const userId = req.user.id;
+
+        const ticket = await Ticket.findOne({ _id: ticketId });
+        if (!ticket) {
+            return res.status(404).json({ status: 404, message: 'Ticket not found or does not belong to the user' });
+        }
+
+        ticket.status = 'Closed';
+        await ticket.save();
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Ticket closed successfully',
+            data: ticket,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: 500,
+            message: 'Error closing ticket',
+            error: error.message,
+        });
     }
 };

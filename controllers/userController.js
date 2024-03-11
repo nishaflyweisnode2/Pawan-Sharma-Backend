@@ -3,6 +3,8 @@ const Notification = require('../models/notificationModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require("bcryptjs");
 const Referral = require('../models/refferModel');
+const Ticket = require('../models/ticketModel');
+const Order = require('../models/orderModel');
 
 
 const { registrationSchema, generateOtp, otpSchema, loginSchema, resendOtpSchema, userIdSchema, updateUserSchema, updateUserProfileSchema } = require('../validations/userValidation');
@@ -292,5 +294,62 @@ exports.deleteUser = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ status: 500, message: 'Error deleting user', error: error.message });
+    }
+};
+
+
+exports.createTicket = async (req, res) => {
+    try {
+        const { orderId, subject, message } = req.body;
+        const userId = req.user.id;
+
+        const order = await Order.findOne({ _id: orderId, user: userId });
+        if (!order) {
+            return res.status(404).json({ status: 404, message: 'Order not found or does not belong to the user' });
+        }
+
+        const ticket = new Ticket({
+            user: userId,
+            order: orderId,
+            subject,
+            message,
+        });
+
+        await ticket.save();
+
+        return res.status(201).json({
+            status: 201,
+            message: 'Ticket created successfully',
+            data: ticket,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: 500,
+            message: 'Error creating ticket',
+            error: error.message,
+        });
+    }
+};
+
+
+exports.getTickets = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const tickets = await Ticket.find({ user: userId });
+
+        return res.status(200).json({
+            status: 200,
+            message: 'Tickets retrieved successfully',
+            data: tickets,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: 500,
+            message: 'Error retrieving tickets',
+            error: error.message,
+        });
     }
 };

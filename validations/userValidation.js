@@ -42,6 +42,7 @@ exports.userIdSchema = Joi.object({
 exports.updateUserSchema = Joi.object({
     userName: Joi.string().min(3).max(30).required(),
     mobileNumber: Joi.string().required(),
+    email: Joi.string().required(),
     password: Joi.string().optional(),
 });
 

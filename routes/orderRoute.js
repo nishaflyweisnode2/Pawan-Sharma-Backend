@@ -22,6 +22,9 @@ module.exports = (app) => {
     app.get('/api/user/order/:orderId', [authJwt.verifyToken], auth.getOrderById);
     app.put('/api/user/order/:id/status', [authJwt.verifyToken], auth.updateOrderStatus);
     app.get('/api/user/history/order', [authJwt.verifyToken], auth.getOrderHistory);
+    app.put('/api/user/orders/:orderId/refunds', [authJwt.verifyToken], auth.createReturnRequest);
+    app.get('/api/user/refund-orders', [authJwt.verifyToken], auth.getRefundOrders);
+
 
 
 }
