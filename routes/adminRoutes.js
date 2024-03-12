@@ -71,6 +71,7 @@ module.exports = (app) => {
     app.get('/api/admin/vendor/order/:vendorId', [authJwt.isAdmin], auth.getOrdersByVendorId);
     app.get('/api/admin/product/order/:productId', [authJwt.isAdmin], auth.getOrdersByProductId);
     app.get('/api/admin/order/:orderId', [authJwt.isAdmin], auth.getOrderById);
+    app.get('/api/admin/order-search/search', [authJwt.isAdmin], auth.searchOrders);
     app.put('/api/admin/order/:id/status', [authJwt.isAdmin], auth.updateOrderStatus);
     app.get('/api/admin/payment', [authJwt.isAdmin], auth.getPayments);
     app.get('/api/admin/payment/:orderId', [authJwt.isAdmin], auth.getPaymentsByOrderId);
@@ -114,9 +115,9 @@ module.exports = (app) => {
     app.get('/api/admin/refund-orders', [authJwt.isAdmin], auth.getRefundOrders);
     app.put('/api/admin/refund-orders/:orderId', [authJwt.isAdmin], auth.updateRefundStatus);
     app.get('/api/admin/tickets', [authJwt.isAdmin], auth.getTickets);
-    app.put('/api/admin/tickets/:ticketId/reply',  [authJwt.isAdmin], auth.replyToTicket);
+    app.put('/api/admin/tickets/:ticketId/reply', [authJwt.isAdmin], auth.replyToTicket);
     app.put('/api/admin/tickets/:ticketId/close', [authJwt.isAdmin], auth.closeTicket);
-    
+
 
 
 }

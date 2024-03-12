@@ -1787,8 +1787,12 @@ exports.getOrderById = async (req, res) => {
                 select: 'productName price image',
             })
             .populate({
+                path: 'products.vendorId',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
                 path: 'user',
-                select: 'userName mobileNumber',
+                select: 'userName mobileNumber image',
             })
             .populate({
                 path: 'shippingAddress',
@@ -1803,6 +1807,49 @@ exports.getOrderById = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: 500, message: 'Error fetching order', error: error.message });
+    }
+};
+
+
+exports.searchOrders = async (req, res) => {
+    try {
+        const { userId, vendorId, productId } = req.query;
+        let query = {};
+
+        if (userId) {
+            query.user = userId;
+        }
+        if (vendorId) {
+            query['products.vendorId'] = vendorId;
+        }
+        if (productId) {
+            query['products.product'] = productId;
+        }
+
+        const orders = await Order.find(query)
+            .populate({
+                path: 'products.product',
+                select: 'productName price image',
+            })
+            .populate({
+                path: 'products.vendorId',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'user',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'shippingAddress',
+                select: 'fullName phone addressLine1 city state postalCode country isDefault',
+            });
+
+        const count = orders.length;
+
+        return res.status(200).json({ status: 200, message: 'Orders retrieved successfully', data: count, orders });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: 500, message: 'Error fetching orders', error: error.message });
     }
 };
 
