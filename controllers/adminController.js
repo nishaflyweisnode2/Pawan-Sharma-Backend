@@ -2892,7 +2892,22 @@ exports.exportPaymentToExcel = async (req, res) => {
 
 exports.getRefundOrders = async (req, res) => {
     try {
-        const refundOrders = await Order.find({ isRefund: true });
+        const refundOrders = await Order.find({ isRefund: true }).populate({
+            path: 'products.product',
+            select: 'productName price image',
+        })
+            .populate({
+                path: 'products.vendorId',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'user',
+                select: 'userName mobileNumber image',
+            })
+            .populate({
+                path: 'shippingAddress',
+                select: 'fullName phone addressLine1 city state postalCode country isDefault',
+            });;
 
         return res.status(200).json({
             status: 200,
