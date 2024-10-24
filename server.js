@@ -15,7 +15,7 @@ if (process.env.NODE_ENV == "production") {
     console.log = function () { };
 }
 app.get("/", (req, res) => {
-    res.send("Hello World!");
+    res.send("Hello Pawan Sharma Project!");
 });
 
 // app.use('/invoices', express.static(path.join(__dirname, './controllers/invoices')))
@@ -50,4 +50,4 @@ app.listen(process.env.PORT, () => {
     console.log(`Listening on port ${process.env.PORT}!`);
 });
 
-module.exports = { handler: serverless(app) };
+module.exports = app;
